@@ -1,10 +1,10 @@
 {
-  "name": "agent-task-board",
+  "name": "pepper-tasks",
   "version": "0.1.0",
   "description": "人與 AI Agent 之間的雙向任務協作面板",
   "main": "dist/cli.js",
   "bin": {
-    "agent-task-board": "./dist/cli.js"
+    "pepper-tasks": "./dist/cli.js"
   },
   "files": [
     "dist/"

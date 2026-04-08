@@ -67,7 +67,7 @@ async function main(): Promise<void> {
           serviceStatus();
           break;
         default:
-          console.error("Usage: agent-task-board service [install|uninstall|status] [--port 3847]");
+          console.error("Usage: pepper-tasks service [install|uninstall|status] [--port 3847]");
           process.exit(1);
       }
       process.exit(0);
@@ -90,10 +90,10 @@ async function main(): Promise<void> {
       console.error(`Unknown command: ${command}`);
       console.error(
         "Usage:\n" +
-          "  agent-task-board start    [--port 3847]              Start Web UI\n" +
-          "  agent-task-board mcp                                 Start MCP Server (stdio)\n" +
-          "  agent-task-board config                              Output MCP config JSON\n" +
-          "  agent-task-board service  [install|uninstall|status] System service management\n"
+          "  pepper-tasks start    [--port 3847]              Start Web UI\n" +
+          "  pepper-tasks mcp                                 Start MCP Server (stdio)\n" +
+          "  pepper-tasks config                              Output MCP config JSON\n" +
+          "  pepper-tasks service  [install|uninstall|status] System service management\n"
       );
       process.exit(1);
   }

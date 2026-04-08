@@ -7,7 +7,7 @@ import { registerSystemTools } from "./tools/system";
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({
-    name: "agent-task-board",
+    name: "pepper-tasks",
     version: "0.1.0",
   });
 

@@ -4,6 +4,12 @@
 
 A bidirectional task collaboration board between humans and AI Agents — a digital interface for the boss-secretary model.
 
+> **Why "Pepper"?**
+>
+> Named after Pepper Potts from *Iron Man*. She started as Tony Stark's personal assistant, gradually took on more responsibility as Tony relied on her increasingly, and eventually became CEO of Stark Industries — running the entire company.
+>
+> This mirrors the future of human-AI Agent collaboration. Your agents start by handling small tasks, but over time they take on more, until one day they're running your small business or personal brand like a CEO. And you, like Tony Stark, get to be both rich and gloriously lazy. 🌶️
+
 Solves two core problems:
 1. **Task forgetting** — Tasks disappear after an Agent session ends with no persistent record
 2. **Reply forgetting** — Agents ask questions awaiting decisions, but messages get buried and humans forget to respond
@@ -14,7 +20,7 @@ Solves two core problems:
 
 ```bash
 git clone <repo-url>
-cd agent-task-board
+cd pepper-tasks
 npm install          # Installs all dependencies + builds frontend & backend
 npm start            # http://localhost:3847
 ```
@@ -28,7 +34,7 @@ Requires Node.js >= 18. `npm install` handles everything automatically.
 **Auto-generate config (recommended):**
 
 ```bash
-agent-task-board config
+pepper-tasks config
 ```
 
 Copy the output JSON into your MCP configuration:
@@ -38,7 +44,7 @@ Copy the output JSON into your MCP configuration:
   "mcpServers": {
     "task-board": {
       "command": "/path/to/node",
-      "args": ["/path/to/agent-task-board/dist/cli.js", "mcp"]
+      "args": ["/path/to/pepper-tasks/dist/cli.js", "mcp"]
     }
   }
 }
@@ -54,7 +60,7 @@ Works with Claude Code, OpenClaw, and any MCP-compatible Agent framework.
 {
   "mcpServers": {
     "task-board": {
-      "command": "agent-task-board",
+      "command": "pepper-tasks",
       "args": ["mcp"]
     }
   }
@@ -68,15 +74,15 @@ Works with Claude Code, OpenClaw, and any MCP-compatible Agent framework.
 Auto-start Agent Task Board on boot:
 
 ```bash
-agent-task-board service install     # Register and start
-agent-task-board service status      # Check status
-agent-task-board service uninstall   # Remove service
+pepper-tasks service install     # Register and start
+pepper-tasks service status      # Check status
+pepper-tasks service uninstall   # Remove service
 ```
 
 | Platform | Mechanism | Config Location |
 |----------|-----------|-----------------|
-| macOS | LaunchAgent | `~/Library/LaunchAgents/com.agent-task-board.plist` |
-| Linux | systemd user service | `~/.config/systemd/user/agent-task-board.service` |
+| macOS | LaunchAgent | `~/Library/LaunchAgents/com.pepper-tasks.plist` |
+| Linux | systemd user service | `~/.config/systemd/user/pepper-tasks.service` |
 
 No sudo required. Runs as user-level service with auto-restart on crash.
 
@@ -353,19 +359,19 @@ UI language: Traditional Chinese (i18n planned for Phase 2). Responsive layout f
 ## CLI Reference
 
 ```
-agent-task-board start    [--port 3847]              Start Web UI
-agent-task-board mcp                                 Start MCP Server (stdio)
-agent-task-board config                              Output MCP config JSON
-agent-task-board service  [install|uninstall|status]  System service management
+pepper-tasks start    [--port 3847]              Start Web UI
+pepper-tasks mcp                                 Start MCP Server (stdio)
+pepper-tasks config                              Output MCP config JSON
+pepper-tasks service  [install|uninstall|status]  System service management
 ```
 
 ---
 
 ## Data Storage
 
-- Default path: `~/.agent-task-board/data.db` (SQLite)
+- Default path: `~/.pepper-tasks/data.db` (SQLite)
 - Custom path: env var `ATB_DB_PATH` or `--db-path` flag
-- Service logs: `~/.agent-task-board/logs/`
+- Service logs: `~/.pepper-tasks/logs/`
 - Backup = copy the `.db` file
 
 ---
@@ -374,7 +380,7 @@ agent-task-board service  [install|uninstall|status]  System service management
 
 ```bash
 git clone <repo-url>
-cd agent-task-board
+cd pepper-tasks
 npm install              # Install deps + auto-build
 
 npm run dev              # Backend watch mode

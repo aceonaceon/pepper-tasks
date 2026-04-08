@@ -9,8 +9,8 @@ import {
 } from "fs";
 import { execSync } from "child_process";
 
-const SERVICE_NAME = "com.agent-task-board";
-const LABEL = "agent-task-board";
+const SERVICE_NAME = "com.pepper-tasks";
+const LABEL = "pepper-tasks";
 
 function getCliPath(): string {
   return resolve(__dirname, "cli.js");
@@ -21,7 +21,7 @@ function getNodePath(): string {
 }
 
 function getLogDir(): string {
-  const dir = resolve(homedir(), ".agent-task-board", "logs");
+  const dir = resolve(homedir(), ".pepper-tasks", "logs");
   mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -77,7 +77,7 @@ function macInstall(port: number): void {
   execSync(`launchctl load -w "${plistPath}"`);
   console.log(`✅ Service installed and started!`);
   console.log(`   Web UI: http://localhost:${port}`);
-  console.log(`   Logs:   ~/.agent-task-board/logs/`);
+  console.log(`   Logs:   ~/.pepper-tasks/logs/`);
   console.log(`   Plist:  ${plistPath}`);
 }
 
@@ -161,7 +161,7 @@ function linuxInstall(port: number): void {
   execSync(`systemctl --user enable --now ${LABEL}`);
   console.log(`✅ Service installed and started!`);
   console.log(`   Web UI: http://localhost:${port}`);
-  console.log(`   Logs:   ~/.agent-task-board/logs/`);
+  console.log(`   Logs:   ~/.pepper-tasks/logs/`);
   console.log(`   Unit:   ${servicePath}`);
 }
 

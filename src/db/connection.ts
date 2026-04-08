@@ -9,7 +9,7 @@ let db: Database.Database | null = null;
 
 function getDbPath(): string {
   if (process.env.ATB_DB_PATH) return process.env.ATB_DB_PATH;
-  return join(homedir(), ".agent-task-board", "data.db");
+  return join(homedir(), ".pepper-tasks", "data.db");
 }
 
 function isNativeModuleError(err: any): boolean {
@@ -22,8 +22,8 @@ function isNativeModuleError(err: any): boolean {
 
 function rebuildBetterSqlite3(): void {
   process.stderr.write(
-    "[agent-task-board] Node.js version mismatch detected for better-sqlite3.\n" +
-      "[agent-task-board] Auto-rebuilding native module for current Node " +
+    "[pepper-tasks] Node.js version mismatch detected for better-sqlite3.\n" +
+      "[pepper-tasks] Auto-rebuilding native module for current Node " +
       process.version +
       "...\n"
   );
@@ -63,7 +63,7 @@ function rebuildBetterSqlite3(): void {
   });
 
   process.stderr.write(
-    "[agent-task-board] Rebuild successful!\n"
+    "[pepper-tasks] Rebuild successful!\n"
   );
 
   // Clear ALL cached modules related to better-sqlite3 and bindings
@@ -99,11 +99,11 @@ function openDatabase(dbPath: string): Database.Database {
       // If retry also fails, give helpful guidance
       if (isNativeModuleError(retryErr)) {
         process.stderr.write(
-          "[agent-task-board] Auto-rebuild did not resolve the issue.\n" +
-            "[agent-task-board] Please try:\n" +
-            "[agent-task-board]   1. npm rebuild better-sqlite3\n" +
-            "[agent-task-board]   2. agent-task-board config  (generate MCP config with correct Node path)\n" +
-            "[agent-task-board]   3. npm install -g agent-task-board  (reinstall)\n"
+          "[pepper-tasks] Auto-rebuild did not resolve the issue.\n" +
+            "[pepper-tasks] Please try:\n" +
+            "[pepper-tasks]   1. npm rebuild better-sqlite3\n" +
+            "[pepper-tasks]   2. pepper-tasks config  (generate MCP config with correct Node path)\n" +
+            "[pepper-tasks]   3. npm install -g pepper-tasks  (reinstall)\n"
         );
       }
       throw retryErr;

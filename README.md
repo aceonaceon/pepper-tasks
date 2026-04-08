@@ -4,6 +4,12 @@
 
 人與 AI Agent 之間的雙向任務協作面板 — 老闆與秘書的數位溝通介面。
 
+> **為什麼叫 Pepper？**
+>
+> 名字來自《鋼鐵人》裡的 Pepper Potts。她從 Tony Stark 的秘書做起，隨著 Tony 越來越依賴她，Pepper 從助理升為公司 CEO，最終掌管了整個 Stark Industries。
+>
+> 這正是我們與 AI Agent 的未來關係 — Agent 從幫你處理瑣事開始，逐漸承擔更多責任，直到有一天，它們成為你的小公司或個人品牌的 CEO。而你，就像 Tony Stark 一樣，可以又有錢又很廢。🌶️
+
 解決兩個核心問題：
 1. **任務遺忘** — Agent session 結束後任務消失，沒有持久記錄
 2. **回覆遺忘** — Agent 提出問題等待決策，但訊息被沖掉，人忘了回覆
@@ -14,7 +20,7 @@
 
 ```bash
 git clone <repo-url>
-cd agent-task-board
+cd pepper-tasks
 npm install          # 自動安裝所有依賴 + 建置前後端
 npm start            # http://localhost:3847
 ```
@@ -28,7 +34,7 @@ npm start            # http://localhost:3847
 **自動生成設定（推薦）：**
 
 ```bash
-agent-task-board config
+pepper-tasks config
 ```
 
 將輸出的 JSON 複製到你的 MCP 設定中：
@@ -38,7 +44,7 @@ agent-task-board config
   "mcpServers": {
     "task-board": {
       "command": "/path/to/node",
-      "args": ["/path/to/agent-task-board/dist/cli.js", "mcp"]
+      "args": ["/path/to/pepper-tasks/dist/cli.js", "mcp"]
     }
   }
 }
@@ -54,7 +60,7 @@ agent-task-board config
 {
   "mcpServers": {
     "task-board": {
-      "command": "agent-task-board",
+      "command": "pepper-tasks",
       "args": ["mcp"]
     }
   }
@@ -68,15 +74,15 @@ agent-task-board config
 讓 Agent Task Board 在開機時自動啟動：
 
 ```bash
-agent-task-board service install     # 註冊並啟動
-agent-task-board service status      # 查看狀態
-agent-task-board service uninstall   # 移除服務
+pepper-tasks service install     # 註冊並啟動
+pepper-tasks service status      # 查看狀態
+pepper-tasks service uninstall   # 移除服務
 ```
 
 | 平台 | 機制 | 設定位置 |
 |------|------|----------|
-| macOS | LaunchAgent | `~/Library/LaunchAgents/com.agent-task-board.plist` |
-| Linux | systemd user service | `~/.config/systemd/user/agent-task-board.service` |
+| macOS | LaunchAgent | `~/Library/LaunchAgents/com.pepper-tasks.plist` |
+| Linux | systemd user service | `~/.config/systemd/user/pepper-tasks.service` |
 
 不需要 sudo，以使用者權限運行。支援 crash 後自動重啟。
 
@@ -353,19 +359,19 @@ Agent 每次 session 開始時應先呼叫 `dashboard` 同步狀態。
 ## CLI 完整指令
 
 ```
-agent-task-board start    [--port 3847]              啟動 Web UI
-agent-task-board mcp                                 啟動 MCP Server（stdio）
-agent-task-board config                              輸出 MCP 設定 JSON
-agent-task-board service  [install|uninstall|status]  系統服務管理
+pepper-tasks start    [--port 3847]              啟動 Web UI
+pepper-tasks mcp                                 啟動 MCP Server（stdio）
+pepper-tasks config                              輸出 MCP 設定 JSON
+pepper-tasks service  [install|uninstall|status]  系統服務管理
 ```
 
 ---
 
 ## 資料儲存
 
-- 預設路徑：`~/.agent-task-board/data.db`（SQLite）
+- 預設路徑：`~/.pepper-tasks/data.db`（SQLite）
 - 自訂路徑：環境變數 `ATB_DB_PATH` 或 `--db-path` 參數
-- 服務日誌：`~/.agent-task-board/logs/`
+- 服務日誌：`~/.pepper-tasks/logs/`
 - 備份 = 複製 `.db` 檔案
 
 ---
@@ -374,7 +380,7 @@ agent-task-board service  [install|uninstall|status]  系統服務管理
 
 ```bash
 git clone <repo-url>
-cd agent-task-board
+cd pepper-tasks
 npm install              # 安裝依賴 + 自動建置
 
 npm run dev              # 後端 watch mode
