@@ -1,0 +1,36 @@
+{
+  "name": "agent-task-board",
+  "version": "0.1.0",
+  "description": "人與 AI Agent 之間的雙向任務協作面板",
+  "main": "dist/cli.js",
+  "bin": {
+    "agent-task-board": "./dist/cli.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "postinstall": "cd web && npm install && cd .. && npm run build",
+    "build": "rm -rf dist && tsup && cd web && npm run build && cd .. && cp -r web/dist dist/web",
+    "build:server": "tsup",
+    "start": "node dist/cli.js start",
+    "dev": "tsup --watch",
+    "dev:web": "cd web && npm run dev"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "better-sqlite3": "^11.10.0",
+    "hono": "^4.7.6",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.13.14",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

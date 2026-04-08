@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #fafaf9;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f5f5f4;
+  --color-surface-overlay: rgba(0, 0, 0, 0.4);
+
+  --color-ink: #1c1917;
+  --color-ink-muted: #78716c;
+  --color-ink-faint: #a8a29e;
+  --color-ink-inverse: #fafaf9;
+
+  --color-border: #e7e5e4;
+  --color-border-focus: #0ea5e9;
+
+  --color-accent: #0ea5e9;
+  --color-accent-soft: #e0f2fe;
+
+  --color-status-pending: #f59e0b;
+  --color-status-progress: #3b82f6;
+  --color-status-blocked: #ef4444;
+  --color-status-review: #a855f7;
+  --color-status-done: #22c55e;
+
+  --color-q1: #fef2f2;
+  --color-q1-ink: #dc2626;
+  --color-q2: #eff6ff;
+  --color-q2-ink: #2563eb;
+  --color-q3: #fefce8;
+  --color-q3-ink: #ca8a04;
+  --color-q4: #f5f5f4;
+  --color-q4-ink: #78716c;
+
+  --font-sans: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.03);
+  --shadow-modal: 0 24px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  line-height: 1.6;
+}
+
+/* Smooth page transitions */
+@view-transition { navigation: auto; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-ink-faint); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-muted); }
+
+/* Disable native overscroll in standalone PWA — we handle pull-to-refresh ourselves */
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-y: none; }
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Status dot animation */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Slide in */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
