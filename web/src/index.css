@@ -106,3 +106,10 @@ body {
 .animate-fade-in {
   animation: fade-in 0.2s ease-out both;
 }
+
+/* Markdown prose */
+.markdown-prose > *:first-child { margin-top: 0; }
+.markdown-prose > *:last-child { margin-bottom: 0; }
+.markdown-prose img { max-width: 100%; border-radius: var(--radius-sm); }
+.markdown-prose pre { overflow-x: auto; }
+.markdown-table { border-collapse: collapse; }

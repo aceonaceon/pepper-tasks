@@ -27,6 +27,7 @@ export function initializeSchema(db: Database.Database): void {
       question_type TEXT NOT NULL
         CHECK(question_type IN ('yes_no','single_choice','multi_choice','datetime','open_ended')),
       question_text TEXT NOT NULL,
+      description TEXT,
       options TEXT,
       answer TEXT,
       status TEXT NOT NULL DEFAULT 'pending'
@@ -54,6 +55,12 @@ export function initializeSchema(db: Database.Database): void {
       timestamp TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+  `);
+
+  // Migration: add description column to existing questions table
+  try { db.exec("ALTER TABLE questions ADD COLUMN description TEXT"); } catch {}
+
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_to);
     CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);

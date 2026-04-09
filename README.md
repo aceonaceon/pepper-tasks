@@ -198,6 +198,7 @@ Agent 需要老闆決策時，建立結構化問題。老闆在 Web UI 中回答
 | `task_id` | string | | 關聯任務 ID |
 | `question_type` | enum | ✅ | 問題類型 |
 | `question_text` | string | ✅ | 問題內容 |
+| `description` | string | | 詳細說明（支援 Markdown，老闆可在 Web UI 展開閱讀） |
 | `options` | string[] | | 選項（僅 choice 類型需要） |
 | `assigned_to` | string | ✅ | 回答者（通常是 `boss`） |
 | `caller` | string | ✅ | 提問者身份 |

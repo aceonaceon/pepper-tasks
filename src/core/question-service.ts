@@ -27,6 +27,7 @@ export function createQuestion(
     assigned_to: params.assigned_to,
     question_type: params.question_type,
     question_text: params.question_text,
+    description: params.description || null,
     options: params.options ? JSON.stringify(params.options) : null,
     answer: null,
     status: "pending",

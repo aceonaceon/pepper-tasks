@@ -73,8 +73,8 @@ export function deleteTask(id: string): void {
 export function insertQuestion(question: Question): void {
   getDb()
     .prepare(
-      `INSERT INTO questions (id, task_id, created_by, assigned_to, question_type, question_text, options, answer, status, created_at, answered_at)
-       VALUES (@id, @task_id, @created_by, @assigned_to, @question_type, @question_text, @options, @answer, @status, @created_at, @answered_at)`
+      `INSERT INTO questions (id, task_id, created_by, assigned_to, question_type, question_text, description, options, answer, status, created_at, answered_at)
+       VALUES (@id, @task_id, @created_by, @assigned_to, @question_type, @question_text, @description, @options, @answer, @status, @created_at, @answered_at)`
     )
     .run(question);
 }

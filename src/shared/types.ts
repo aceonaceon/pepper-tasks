@@ -42,6 +42,7 @@ export interface Question {
   assigned_to: string;
   question_type: QuestionType;
   question_text: string;
+  description: string | null;
   options: string | null;
   answer: string | null;
   status: QuestionStatus;
@@ -89,6 +90,7 @@ export interface UpdateTaskParams {
 export interface CreateQuestionParams {
   task_id?: string;
   question_type: QuestionType;
+  description?: string;
   question_text: string;
   options?: string[];
   assigned_to: string;

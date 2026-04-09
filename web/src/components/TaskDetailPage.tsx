@@ -4,6 +4,7 @@ import { usePolling } from "../hooks/usePolling";
 import * as api from "../api";
 import { t, statusLabel, quadrantLabel } from "../i18n";
 import AuditTimeline from "./AuditTimeline";
+import Markdown from "./Markdown";
 import type { TaskDetail } from "../types";
 
 const STATUS_DOTS: Record<string, string> = {
@@ -40,9 +41,9 @@ export default function TaskDetailPage() {
           {task.title}
         </h1>
         {task.description && (
-          <p className="text-sm text-[var(--color-ink-muted)] whitespace-pre-wrap mb-4 leading-relaxed">
-            {task.description}
-          </p>
+          <div className="mb-4">
+            <Markdown>{task.description}</Markdown>
+          </div>
         )}
         <div className="flex flex-wrap gap-2">
           <Tag>
@@ -94,7 +95,12 @@ export default function TaskDetailPage() {
           <div className="space-y-2">
             {questions.map((q) => (
               <div key={q.id} className="p-3 rounded-[var(--radius-sm)] bg-[var(--color-surface-sunken)]">
-                <p className="text-sm text-[var(--color-ink)] mb-1">{q.question_text}</p>
+                <p className="text-sm font-medium text-[var(--color-ink)] mb-1">{q.question_text}</p>
+                {q.description && (
+                  <div className="mb-2">
+                    <Markdown>{q.description}</Markdown>
+                  </div>
+                )}
                 <span className={`text-[11px] font-medium ${q.status === "answered" ? "text-emerald-600" : "text-amber-600"}`}>
                   {q.status === "answered" ? `✓ 已回答：${q.answer}` : "⏳ 等待回覆中..."}
                 </span>

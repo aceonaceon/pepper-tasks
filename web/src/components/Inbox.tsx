@@ -3,6 +3,7 @@ import { t, timeAgo } from "../i18n";
 import type { Question, Task } from "../types";
 import QuestionAnswer from "./QuestionAnswer";
 import ReviewAction from "./ReviewAction";
+import Markdown from "./Markdown";
 
 interface Props {
   questions: Question[];
@@ -41,7 +42,7 @@ export default function Inbox({ questions, reviewTasks, onAction }: Props) {
             iconBg="bg-amber-100"
             meta={`${q.created_by} 問你`}
             title={q.question_text}
-            description={null}
+            description={q.description}
             waitingSince={q.created_at}
             delay={i * 40}
           >
@@ -126,11 +127,11 @@ function InboxCard({
             >
               <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            {expanded ? "收合說明" : "展開說明"}
+            {expanded ? t.collapseDesc : t.expandDesc}
           </button>
           {expanded && (
-            <div className="mt-2 text-sm text-[var(--color-ink-muted)] leading-relaxed whitespace-pre-wrap bg-[var(--color-surface-sunken)] rounded-[var(--radius-sm)] p-3 animate-slide-up">
-              {description}
+            <div className="mt-2 bg-[var(--color-surface-sunken)] rounded-[var(--radius-sm)] p-3 animate-slide-up">
+              <Markdown>{description!}</Markdown>
             </div>
           )}
         </div>

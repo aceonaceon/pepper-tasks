@@ -12,6 +12,7 @@ export function registerQuestionTools(server: McpServer): void {
         .enum(["yes_no", "single_choice", "multi_choice", "datetime", "open_ended"])
         .describe("問題類型"),
       question_text: z.string().describe("問題內容"),
+      description: z.string().optional().describe("問題的詳細說明、背景資訊、研究結果（支援 Markdown）"),
       options: z.array(z.string()).optional().describe("選項列表（僅 choice 類型需要）"),
       assigned_to: z.string().describe("回答者（通常是 boss）"),
       caller: z.string().describe("提問者身份"),
@@ -23,6 +24,7 @@ export function registerQuestionTools(server: McpServer): void {
             task_id: params.task_id,
             question_type: params.question_type,
             question_text: params.question_text,
+            description: params.description,
             options: params.options,
             assigned_to: params.assigned_to,
           },

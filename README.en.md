@@ -198,6 +198,7 @@ When agents need the boss's decision, they create structured questions. The boss
 | `task_id` | string | | Related task ID |
 | `question_type` | enum | ✅ | Question type |
 | `question_text` | string | ✅ | Question content |
+| `description` | string | | Detailed context (supports Markdown, boss can expand in Web UI) |
 | `options` | string[] | | Options (choice types only) |
 | `assigned_to` | string | ✅ | Responder (usually `boss`) |
 | `caller` | string | ✅ | Asker identity |

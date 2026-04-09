@@ -26,6 +26,11 @@ export const t = {
   cancel: "取消",
   yes: "是",
   no: "否",
+  needRevision: "需要修改",
+  revisionPlaceholder: "請說明需要修改的地方...",
+  submitRevision: "送出修改意見",
+  expandDesc: "展開說明",
+  collapseDesc: "收合說明",
 
   // Labels
   title: "標題",

@@ -40,6 +40,7 @@ export interface Question {
   assigned_to: string;
   question_type: QuestionType;
   question_text: string;
+  description: string | null;
   options: string | null;
   answer: string | null;
   status: "pending" | "answered";
