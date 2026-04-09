@@ -39,6 +39,22 @@ pepper-tasks 裡不應該有任何球停在 Agent 手上的任務。
 
 `pending` 和 `in_progress` 是你該處理的中間態。如果這些狀態的任務還存在，代表你的工作沒做完。
 
+### 📊 狀態使用規範（極重要）
+
+**`blocked` 是最容易被誤用的狀態。** `blocked` 代表「Agent 因為缺少老闆的決策而完全無法繼續推進」。使用 `blocked` 時**必須同時建立一個 `question_create`**，讓老闆知道你在等什麼。
+
+| 場景 | 正確狀態 | ❌ 不要用 |
+|------|---------|-----------|
+| Agent 需要老闆從 A/B/C 方案中選一個才能繼續 | `blocked` + `question_create` | — |
+| 等外部第三方回信（不是等老闆） | `in_progress`（Agent 應自行追蹤跟進） | `blocked` |
+| 行程提醒（4/14 見面、4/21 紀念日） | `in_progress` 或 `pending` | `blocked` |
+| 已經做完但還沒送覆核 | `review` | `blocked` |
+| 任務已完成、已訂位、已處理 | `completed` | `blocked` |
+| 等待某個日期到來（倒數計時） | `in_progress`（到期時再行動） | `blocked` |
+| 等家庭決定、等對方回覆（非老闆） | `in_progress`（定期檢查進度） | `blocked` |
+
+**簡單判斷法：** 如果你沒有同時建立一個 `question_create`，就不應該用 `blocked`。
+
 ### ❌ 絕對不做
 - **不問 open question**：「你覺得怎麼做？」「要用什麼方式？」→ 禁止
 - **不回報問題而不帶方案**：「這個有困難」→ 禁止，必須附帶解法
@@ -47,6 +63,7 @@ pepper-tasks 裡不應該有任何球停在 Agent 手上的任務。
 - **不留下沒有 checkpoint 的任務**：description 必須隨時反映最新進度
 - **不建立重複任務**：建任務前必須用 `task_list(search: "關鍵字")` 查重，有既有任務就更新它
 - **不留下殭屍子任務**：父任務完成時，所有子任務都必須標為 completed 或 archived
+- **不把 blocked 當萬用暫停鍵**：blocked 只用於「等老闆決策」，等外部回覆、行程提醒、倒數計時都不是 blocked
 
 ### ✅ 永遠要做
 - **先研究再提問**：能 Google 到的不要問，能推理出來的不要問

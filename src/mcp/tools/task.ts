@@ -51,7 +51,7 @@ export function registerTaskTools(server: McpServer): void {
       status: z
         .enum(["pending", "in_progress", "blocked", "review", "completed", "archived"])
         .optional()
-        .describe("新狀態"),
+        .describe("新狀態。blocked 僅限「Agent 因缺少老闆決策而無法繼續」的情況，必須同時建立 question_create 提問。等待外部回覆、行程提醒、已完成待確認等場景不應使用 blocked。"),
       title: z.string().optional().describe("新標題"),
       description: z.string().optional().describe("新描述"),
       quadrant: z
