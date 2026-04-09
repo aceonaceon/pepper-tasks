@@ -149,7 +149,7 @@ function assertCanUpdate(
 ): void {
   if (caller === "boss") return;
 
-  if (task.created_by === "boss") {
+  if (task.created_by === "boss" || task.created_by === "system") {
     const allowedFields = new Set(["status", "title", "description", "assigned_to"]);
     for (const key of Object.keys(updates)) {
       if ((updates as Record<string, unknown>)[key] !== undefined && !allowedFields.has(key)) {
