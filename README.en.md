@@ -164,7 +164,7 @@ pending → in_progress → blocked (waiting for reply)
                       → review (submit for review)
 blocked → in_progress (auto-resume when boss replies)
 review  → completed (boss approves)
-        → in_progress (boss rejects + feedback)
+        → in_progress (boss rejects + feedback, Agent reads feedback and revises)
 completed → archived
 ```
 
@@ -176,6 +176,7 @@ completed → archived
 | `assigned_to` | string | | Filter by assignee |
 | `created_by` | string | | Filter by creator |
 | `quadrant` | string | | Filter by quadrant |
+| `search` | string | | Keyword search (fuzzy match on title and description, recommended before creating tasks to avoid duplicates) |
 
 #### `task_get` — Get task details
 

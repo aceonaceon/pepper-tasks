@@ -164,7 +164,7 @@ pending → in_progress → blocked（等待回覆）
                       → review（提交覆核）
 blocked → in_progress（老闆回覆後自動恢復）
 review  → completed（老闆確認）
-        → in_progress（老闆退回 + Feedback）
+        → in_progress（老闆退回 + Feedback，Agent 讀取 feedback 後自行修正）
 completed → archived
 ```
 
@@ -176,6 +176,7 @@ completed → archived
 | `assigned_to` | string | | 篩選負責者 |
 | `created_by` | string | | 篩選建立者 |
 | `quadrant` | string | | 篩選象限 |
+| `search` | string | | 關鍵字搜尋（模糊比對 title 和 description，建議建立任務前查重） |
 
 #### `task_get` — 取得任務詳情
 
