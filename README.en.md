@@ -196,7 +196,7 @@ When agents need the boss's decision, they create structured questions. The boss
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `task_id` | string | | Related task ID |
+| `task_id` | string | ✅ | Related task ID (required — system auto-unblocks the task when boss answers) |
 | `question_type` | enum | ✅ | Question type |
 | `question_text` | string | ✅ | Question content |
 | `description` | string | | Detailed context (supports Markdown, boss can expand in Web UI) |
