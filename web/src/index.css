@@ -113,3 +113,37 @@ body {
 .markdown-prose img { max-width: 100%; border-radius: var(--radius-sm); }
 .markdown-prose pre { overflow-x: auto; }
 .markdown-table { border-collapse: collapse; }
+
+/* ── Dark Theme ── */
+[data-theme="dark"] {
+  --color-surface: #0f0f17;
+  --color-surface-raised: #1a1a2e;
+  --color-surface-sunken: #12121e;
+  --color-surface-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-ink: #e8e6e3;
+  --color-ink-muted: #9ca3af;
+  --color-ink-faint: #6b7280;
+  --color-ink-inverse: #0f0f17;
+
+  --color-border: #2d2d44;
+  --color-border-focus: #38bdf8;
+
+  --color-accent: #38bdf8;
+  --color-accent-soft: #0c4a6e;
+
+  --color-q1: #2a1215;
+  --color-q1-ink: #fca5a5;
+  --color-q2: #0f1d35;
+  --color-q2-ink: #93c5fd;
+  --color-q3: #1f1a0b;
+  --color-q3-ink: #fcd34d;
+  --color-q4: #1a1a2e;
+  --color-q4-ink: #9ca3af;
+
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.15);
+  --shadow-modal: 0 24px 48px rgba(0,0,0,0.4), 0 8px 16px rgba(0,0,0,0.3);
+
+  color-scheme: dark;
+}
