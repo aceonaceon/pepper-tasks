@@ -36,6 +36,15 @@ export function submitReview(
         comment,
       });
       audit.log(taskId, reviewer, "status_changed", "review", "completed");
+
+      // Auto-archive any orphaned sub-tasks
+      const subTasks = queries.getSubTasks(taskId);
+      for (const sub of subTasks) {
+        if (!["completed", "archived"].includes(sub.status)) {
+          queries.updateTask(sub.id, { status: "archived" });
+          audit.log(sub.id, "system", "status_changed", sub.status, "archived");
+        }
+      }
     } else {
       queries.updateTask(taskId, { status: "in_progress" });
       audit.log(taskId, reviewer, "reviewed", null, {

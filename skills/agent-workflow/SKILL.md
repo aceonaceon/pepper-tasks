@@ -83,43 +83,29 @@ pepper-tasks 裡不應該有任何球停在 Agent 手上的任務。
 你是一個全新的 Agent instance。上一個你可能做到一半就被中斷了。
 所以第一件事不是接新指令，是「讀檔」。
 
-**Step 1：取得全貌**
+**只需要一個 API 呼叫：**
 ```
-→ dashboard()
-```
-
-**Step 2：掃描所有需要你處理的任務**
-```
-→ task_list(assigned_to: "agent:{your_name}", status: "in_progress")
-→ task_list(assigned_to: "agent:{your_name}", status: "pending")
+→ dashboard(agent_id: "agent:{your_name}")
 ```
 
-這些是上一個 session 沒做完的工作。讀取每個任務的 description，裡面有 checkpoint——上一個你留給你的交接紀錄。
+dashboard 回傳的 `action_items` 已經按優先級排好序了，你不需要自己判斷。從頭到尾依序處理：
 
-**Step 2.5：掃描孤兒任務（dashboard 裡的 orphan_tasks）**
+| Priority | 類型 | 說明 | 你要做什麼 |
+|----------|------|------|-----------|
+| 1 | `answered_question` | 老闆已回覆的問題 | 讀取答案，根據決策繼續推進任務 |
+| 2 | `rejected_review` | 老闆退回的任務 | 讀取 feedback（在 `context` 裡），修正後重新提交 review |
+| 3 | `orphan_task` | 卡住的任務（沒有 pending question） | 接手或修正狀態 |
+| 4 | `in_progress_task` | 你正在進行的任務 | 讀取 description 裡的 checkpoint，從斷點繼續 |
+| 5 | `pending_task` | 待處理的任務 | 開始執行 |
 
-dashboard 回傳的 `orphan_tasks` 是所有卡在 pending/in_progress/blocked 但**沒有 pending question** 的任務。這些是被遺忘的任務，不管 assigned_to 是誰（boss 或其他 agent），你都應該檢查：
+**每個 action_item 都有 `context` 欄位**，裡面是老闆的回答、退回 feedback、或 checkpoint 內容預覽。不需要額外呼叫其他 API。
 
-- 如果是 assigned_to: boss 但你可以推進 → 用 `task_update(assigned_to: "agent:{your_name}")` 接手
-- 如果是 blocked 但沒有 question → 狀態不對，改回 in_progress 或建立 question
-- 如果是已經完成但忘了改狀態 → 標為 completed
+**只有當 action_items 全部處理完畢（所有球都推到老闆端），才接新指令。**
 
-**不要忽略 orphan_tasks。它們是系統裡最容易被遺忘的任務。**
-
-**Step 3：檢查老闆端的回應**
-```
-→ question_list(status: "answered")     // 老闆已回覆但你還沒處理的問題
-→ review_list()                         // 老闆已覆核的任務（可能批准或退回）
-```
-
-**Step 4：決定優先順序**
-1. 老闆已回覆的問題 → 最優先處理（老闆在等你行動）
-2. 老闆退回的任務 → 次優先（讀 feedback 後修正）
-3. `in_progress` 的任務 → 從 checkpoint 繼續
-4. `pending` 的任務 → 開始處理
-5. 新指令 → 最後才接
-
-**只有當以上所有項目都處理完畢（所有球都推到老闆端），才接新指令。**
+> ⚙️ **系統自動防護（你不需要擔心的事）：**
+> - 設定 `blocked` 時如果沒有 pending question → 系統自動拒絕（ValidationError）
+> - 父任務被批准 `completed` 時 → 子任務自動 archived
+> - 孤兒任務（卡住但沒 question）→ 自動出現在 action_items priority 3
 
 ### Phase 1：接收與解析（Intake）
 

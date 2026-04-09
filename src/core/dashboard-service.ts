@@ -14,5 +14,6 @@ export function getDashboard(agentId?: string): DashboardData {
     most_urgent: queries.getMostUrgentTask(),
     items_waiting_for_boss: queries.getItemsWaitingForBoss(),
     orphan_tasks: queries.getOrphanTasks(),
+    action_items: queries.getActionItems(agentId),
   };
 }

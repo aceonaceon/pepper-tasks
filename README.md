@@ -294,13 +294,21 @@ Agent 可定時呼叫此工具，檢查老闆是否已回答問題。
   ],
   "orphan_tasks": [
     { "task_id": "...", "title": "被遺忘的任務", "status": "in_progress", "assigned_to": "boss", "stuck_since": "2026-04-07T10:00:00Z" }
+  ],
+  "action_items": [
+    { "priority": 1, "type": "answered_question", "id": "...", "task_id": "...", "title": "老闆回覆了", "context": "選了方案 B", "since": "2026-04-08T02:00:00Z" },
+    { "priority": 2, "type": "rejected_review", "id": "...", "task_id": "...", "title": "被退回的報告", "context": "格式需要調整", "since": "2026-04-08T03:00:00Z" },
+    { "priority": 3, "type": "orphan_task", "id": "...", "task_id": "...", "title": "卡住的任務", "context": "in_progress", "since": "2026-04-07T10:00:00Z" }
   ]
 }
 ```
 
-`orphan_tasks` 是卡在 pending/in_progress/blocked 但沒有 pending question 的任務 — Agent 應主動檢查並推進這些被遺忘的任務。
+`action_items` 是已按優先級排序的行動清單，Agent 只需呼叫一次 `dashboard()`，從頭到尾依序處理即可。
 
-Agent 每次 session 開始時應先呼叫 `dashboard` 同步狀態。
+**系統自動防護：**
+- 設定 `blocked` 時若無 pending question → 自動拒絕（ValidationError）
+- 父任務被批准時 → 子任務自動 archived
+- 孤兒任務自動出現在 action_items priority 3
 
 #### `audit_log` — 任務歷史變更紀錄
 

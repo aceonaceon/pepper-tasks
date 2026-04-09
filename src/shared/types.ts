@@ -122,6 +122,15 @@ export interface DashboardData {
     assigned_to: string;
     stuck_since: string;
   }>;
+  action_items: Array<{
+    priority: number;
+    type: string;
+    id: string;
+    task_id: string | null;
+    title: string;
+    context: string | null;
+    since: string;
+  }>;
 }
 
 export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {

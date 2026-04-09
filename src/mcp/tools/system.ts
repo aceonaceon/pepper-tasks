@@ -6,7 +6,7 @@ import * as audit from "../../core/audit-service";
 export function registerSystemTools(server: McpServer): void {
   server.tool(
     "dashboard",
-    "全貌概覽 — 任務統計、待回覆項目、最緊急任務、孤兒任務（stuck 但沒有 pending question 的任務，需要 Agent 主動推進）",
+    "全貌概覽 + 行動清單。回傳 action_items 已按優先級排序（1=已回覆問題 2=被退回任務 3=孤兒任務 4=進行中 5=待處理），Agent 每次 session 開始呼叫一次，從頭到尾依序處理 action_items 即可。",
     {
       agent_id: z.string().optional().describe("篩選特定 Agent"),
     },

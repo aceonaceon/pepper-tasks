@@ -53,6 +53,17 @@ export function updateTask(
 
   if (updates.status) {
     validateStatusTransition(task.status, updates.status);
+
+    // blocked requires at least one pending question for this task
+    if (updates.status === "blocked") {
+      const pendingQs = queries.listQuestions({ task_id: taskId, status: "pending" });
+      if (pendingQs.length === 0) {
+        throw new ValidationError(
+          "Cannot set status to 'blocked' without a pending question. " +
+          "Create a question (question_create with task_id) first, then set status to blocked."
+        );
+      }
+    }
   }
 
   const updateFields: Record<string, unknown> = {};

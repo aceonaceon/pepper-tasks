@@ -294,13 +294,21 @@ Useful for learning boss preferences and avoiding repeated mistakes.
   ],
   "orphan_tasks": [
     { "task_id": "...", "title": "Forgotten task", "status": "in_progress", "assigned_to": "boss", "stuck_since": "2026-04-07T10:00:00Z" }
+  ],
+  "action_items": [
+    { "priority": 1, "type": "answered_question", "id": "...", "task_id": "...", "title": "Boss replied", "context": "Chose option B", "since": "2026-04-08T02:00:00Z" },
+    { "priority": 2, "type": "rejected_review", "id": "...", "task_id": "...", "title": "Rejected report", "context": "Format needs adjustment", "since": "2026-04-08T03:00:00Z" },
+    { "priority": 3, "type": "orphan_task", "id": "...", "task_id": "...", "title": "Stuck task", "context": "in_progress", "since": "2026-04-07T10:00:00Z" }
   ]
 }
 ```
 
-`orphan_tasks` are tasks stuck in pending/in_progress/blocked with no pending question — Agents should proactively check and advance these forgotten tasks.
+`action_items` is a priority-sorted action list. Agent calls `dashboard()` once and processes items top-to-bottom.
 
-Agents should call `dashboard` at the start of each session to sync state.
+**Automatic safeguards:**
+- Setting `blocked` without a pending question → auto-rejected (ValidationError)
+- Parent task approved → sub-tasks auto-archived
+- Orphan tasks automatically appear in action_items priority 3
 
 #### `audit_log` — Task change history
 

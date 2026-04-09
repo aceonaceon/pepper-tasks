@@ -290,6 +290,100 @@ export function getOrphanTasks(): Array<{
   }>;
 }
 
+/**
+ * Get a priority-sorted action items list for the Agent.
+ * Agent just calls dashboard() once and processes items top-to-bottom.
+ */
+export function getActionItems(agentId?: string): Array<{
+  priority: number;
+  type: string;
+  id: string;
+  task_id: string | null;
+  title: string;
+  context: string | null;
+  since: string;
+}> {
+  const db = getDb();
+  const agentFilter = agentId ? ` AND t.assigned_to = '${agentId}'` : "";
+
+  // Priority 1: Answered questions (boss replied, Agent hasn't processed)
+  const answeredQs = db
+    .prepare(
+      `SELECT 1 as priority, 'answered_question' as type, q.id, q.task_id,
+              q.question_text as title, q.answer as context, q.answered_at as since
+       FROM questions q
+       WHERE q.status = 'answered' AND q.answered_at > datetime('now', '-48 hours')
+       ORDER BY q.answered_at ASC`
+    )
+    .all() as Array<any>;
+
+  // Priority 2: Recently rejected tasks (boss gave feedback)
+  const rejectedTasks = db
+    .prepare(
+      `SELECT 2 as priority, 'rejected_review' as type, t.id, t.id as task_id,
+              t.title, r.comment as context, r.created_at as since
+       FROM reviews r
+       JOIN tasks t ON r.task_id = t.id
+       WHERE r.approved = 0 AND t.status = 'in_progress'
+       AND r.created_at > datetime('now', '-48 hours')
+       AND r.id = (SELECT id FROM reviews WHERE task_id = t.id ORDER BY created_at DESC LIMIT 1)
+       ORDER BY r.created_at ASC`
+    )
+    .all() as Array<any>;
+
+  // Priority 3: Orphan tasks (stuck without pending question)
+  const orphans = db
+    .prepare(
+      `SELECT 3 as priority, 'orphan_task' as type, t.id, t.id as task_id,
+              t.title, t.status as context, t.updated_at as since
+       FROM tasks t
+       WHERE t.status IN ('pending', 'in_progress', 'blocked')
+       AND t.id NOT IN (
+         SELECT DISTINCT task_id FROM questions WHERE task_id IS NOT NULL AND status = 'pending'
+       )
+       ${agentFilter}
+       ORDER BY t.updated_at ASC`
+    )
+    .all() as Array<any>;
+
+  // Priority 4: In-progress tasks (Agent's own, continue from checkpoint)
+  const inProgress = agentId
+    ? (db
+        .prepare(
+          `SELECT 4 as priority, 'in_progress_task' as type, t.id, t.id as task_id,
+                  t.title, substr(t.description, 1, 200) as context, t.updated_at as since
+           FROM tasks t
+           WHERE t.status = 'in_progress' AND t.assigned_to = ?
+           AND t.id IN (
+             SELECT DISTINCT task_id FROM questions WHERE task_id IS NOT NULL AND status = 'pending'
+           )
+           ORDER BY t.updated_at ASC`
+        )
+        .all(agentId) as Array<any>)
+    : [];
+
+  // Priority 5: Pending tasks
+  const pending = agentId
+    ? (db
+        .prepare(
+          `SELECT 5 as priority, 'pending_task' as type, t.id, t.id as task_id,
+                  t.title, t.quadrant as context, t.created_at as since
+           FROM tasks t
+           WHERE t.status = 'pending' AND t.assigned_to = ?
+           ORDER BY
+             CASE t.quadrant
+               WHEN 'urgent_important' THEN 1
+               WHEN 'not_urgent_important' THEN 2
+               WHEN 'urgent_not_important' THEN 3
+               ELSE 4
+             END, t.created_at ASC`
+        )
+        .all(agentId) as Array<any>)
+    : [];
+
+  return [...answeredQs, ...rejectedTasks, ...orphans, ...inProgress, ...pending];
+}
+
 export function getFeedbackHistory(
   agentId?: string,
   limit: number = 20
