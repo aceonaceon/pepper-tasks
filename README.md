@@ -335,6 +335,72 @@ Agent 每次 session 開始時應先呼叫 `dashboard` 同步狀態。
 
 ---
 
+## Agent 自主工作協議（Skill）
+
+Pepper Tasks 附帶一份 Agent 行為協議，讓 Agent 拿到任何指令後自動走完「研究 → 拆解 → 執行 → 彙報」的完整流程。
+
+📄 **完整協議：** [`skills/agent-workflow/SKILL.md`](./skills/agent-workflow/SKILL.md)
+
+### 核心概念
+
+> 老闆說一句，Agent 做十步。給決策，不給問題。
+> pepper-tasks 是 Agent 的跨 session 持久記憶層——每次寫入是存檔，每次啟動是讀檔。
+
+安裝 Pepper Tasks 後，將 `skills/agent-workflow/SKILL.md` 加入你的 Agent 的 system prompt 或 skill 目錄中：
+
+**Claude Code：**
+```bash
+# 將 SKILL.md 放入專案的 .claude/skills/ 目錄
+cp pepper-tasks/skills/agent-workflow/SKILL.md your-project/.claude/skills/
+```
+
+**OpenClaw / 龍蝦：**
+```
+在 Agent 設定中，將 SKILL.md 的路徑加入 skills 清單
+```
+
+**其他 MCP 相容框架：**
+將 SKILL.md 的內容作為 system prompt 的一部分注入即可。
+
+### 協議做了什麼
+
+| 階段 | Agent 行為 |
+| --- | --- |
+| 斷點續作 | 每次 session 啟動先掃描未完成任務，從 checkpoint 接手 |
+| 接收指令 | 解析意圖，建立主任務，不問 open question |
+| 自主研究 | 用 web search + 檔案讀寫收集資訊，建立研究子任務 |
+| 任務拆解 | 拆成 3-5 個子任務，分配象限與優先級 |
+| 逐步執行 | 每完成一步寫回 checkpoint，卡住才建結構化問題 |
+| 彙整報告 | 提交報告 + 1-3 個決策點供老闆選擇 |
+| 覆核回應 | 根據 feedback 修正並學習老闆偏好 |
+
+### 設定定時輪詢（Heartbeat）
+
+Agent 不會自己醒來。如果沒有定時任務，老闆回覆了問題、覆核了任務，Agent 也不知道——直到有人手動開 session。
+
+**建議在安裝 Pepper Tasks 後，讓 Agent 設定一個定時任務（cron / heartbeat），定期啟動並執行 Phase 0（狀態同步與斷點續作）。**
+
+這樣 Agent 就能：
+- 自動發現老闆已回覆的問題，繼續被阻塞的任務
+- 自動發現老闆已覆核的任務，執行後續行動或處理退回
+- 自動撿起上一個 session 中斷的未完成工作
+- 確保所有任務最終都推到老闆端（`blocked` / `review` / `completed`）
+
+**cron 範例（每 30 分鐘輪詢一次）：**
+```bash
+*/30 * * * * cd /path/to/your-project && your-agent-cli run --skill agent-workflow --phase 0
+```
+
+**n8n / 自動化平台：**
+設定一個 Schedule Trigger，每 30 分鐘觸發 Agent 執行一次 Phase 0。Agent 會自動判斷是否有待處理的工作，沒有就結束，有就繼續推進。
+
+**OpenClaw / 龍蝦：**
+在 Agent 設定中啟用 heartbeat 功能，設定輪詢間隔。Agent 每次被喚醒時會自動執行 Phase 0。
+
+> **輪詢頻率建議：** 一般場景 30 分鐘一次即可。如果你的任務時效性高（如客服回覆、交易決策），可以縮短到 5-10 分鐘。頻率越高，Agent 的回應越即時，但消耗的 token 也越多。
+
+---
+
 ## Web UI
 
 老闆（人類）的操作介面：

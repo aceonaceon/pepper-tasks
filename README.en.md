@@ -335,6 +335,72 @@ Agents should call `dashboard` at the start of each session to sync state.
 
 ---
 
+## Autonomous Agent Workflow (Skill)
+
+Pepper Tasks ships with an Agent behavior protocol that enables any Agent to automatically execute a full "Research → Decompose → Execute → Report" workflow upon receiving instructions.
+
+📄 **Full protocol:** [`skills/agent-workflow/SKILL.md`](./skills/agent-workflow/SKILL.md)
+
+### Core Concept
+
+> Boss says one sentence, Agent does ten steps. Deliver decisions, not questions.
+> pepper-tasks is the Agent's persistent memory layer across sessions — every write is a save, every startup is a load.
+
+After installing Pepper Tasks, add `skills/agent-workflow/SKILL.md` to your Agent's system prompt or skills directory:
+
+**Claude Code:**
+```bash
+# Copy SKILL.md to your project's .claude/skills/ directory
+cp pepper-tasks/skills/agent-workflow/SKILL.md your-project/.claude/skills/
+```
+
+**OpenClaw:**
+```
+Add the SKILL.md path to the Agent's skills list in settings
+```
+
+**Other MCP-compatible frameworks:**
+Inject the SKILL.md content as part of the system prompt.
+
+### What the Protocol Does
+
+| Phase | Agent Behavior |
+| --- | --- |
+| Resume from checkpoint | Scan unfinished tasks at session start, resume from last checkpoint |
+| Receive instructions | Parse intent, create main task, never ask open questions |
+| Autonomous research | Use web search + file I/O to gather info, create research sub-tasks |
+| Task decomposition | Break into 3-5 sub-tasks with quadrant and priority assignments |
+| Step-by-step execution | Write checkpoint after each step, only create structured questions when truly blocked |
+| Summary report | Submit report + 1-3 decision points for boss to choose |
+| Review response | Incorporate feedback and learn boss preferences |
+
+### Setting Up Heartbeat Polling
+
+Agents don't wake up on their own. Without a scheduled task, when the boss answers a question or reviews a task, the Agent won't know — until someone manually starts a session.
+
+**After installing Pepper Tasks, set up a cron job or heartbeat to periodically launch the Agent and execute Phase 0 (status sync & checkpoint resume).**
+
+This enables the Agent to:
+- Automatically discover boss replies and resume blocked tasks
+- Automatically discover reviewed tasks and act on approvals/rejections
+- Automatically pick up unfinished work from interrupted sessions
+- Ensure all tasks eventually reach the boss's side (`blocked` / `review` / `completed`)
+
+**Cron example (poll every 30 minutes):**
+```bash
+*/30 * * * * cd /path/to/your-project && your-agent-cli run --skill agent-workflow --phase 0
+```
+
+**n8n / automation platforms:**
+Set up a Schedule Trigger to launch the Agent every 30 minutes for Phase 0. The Agent automatically determines if there's pending work — if not, it exits quietly.
+
+**OpenClaw:**
+Enable the heartbeat feature in Agent settings and configure the polling interval.
+
+> **Polling frequency guide:** 30 minutes is sufficient for most scenarios. For time-sensitive tasks (customer support, trading decisions), reduce to 5-10 minutes. Higher frequency = faster response, but more token consumption.
+
+---
+
 ## Web UI
 
 The boss (human) interface provides:
