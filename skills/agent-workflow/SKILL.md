@@ -96,6 +96,16 @@ pepper-tasks 裡不應該有任何球停在 Agent 手上的任務。
 
 這些是上一個 session 沒做完的工作。讀取每個任務的 description，裡面有 checkpoint——上一個你留給你的交接紀錄。
 
+**Step 2.5：掃描孤兒任務（dashboard 裡的 orphan_tasks）**
+
+dashboard 回傳的 `orphan_tasks` 是所有卡在 pending/in_progress/blocked 但**沒有 pending question** 的任務。這些是被遺忘的任務，不管 assigned_to 是誰（boss 或其他 agent），你都應該檢查：
+
+- 如果是 assigned_to: boss 但你可以推進 → 用 `task_update(assigned_to: "agent:{your_name}")` 接手
+- 如果是 blocked 但沒有 question → 狀態不對，改回 in_progress 或建立 question
+- 如果是已經完成但忘了改狀態 → 標為 completed
+
+**不要忽略 orphan_tasks。它們是系統裡最容易被遺忘的任務。**
+
 **Step 3：檢查老闆端的回應**
 ```
 → question_list(status: "answered")     // 老闆已回覆但你還沒處理的問題

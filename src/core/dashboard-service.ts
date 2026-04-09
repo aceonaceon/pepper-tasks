@@ -13,5 +13,6 @@ export function getDashboard(agentId?: string): DashboardData {
     newly_answered_questions: queries.countNewlyAnsweredQuestions(),
     most_urgent: queries.getMostUrgentTask(),
     items_waiting_for_boss: queries.getItemsWaitingForBoss(),
+    orphan_tasks: queries.getOrphanTasks(),
   };
 }

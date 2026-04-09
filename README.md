@@ -154,7 +154,7 @@ Agent 透過 MCP 工具與系統互動。所有修改類工具都需要 `caller`
 | `caller` | string | ✅ | 呼叫者身份 |
 
 **權限規則：**
-- 老闆建立的任務 → Agent 可修改 `status`、`title`、`description`，不可刪除、不可更改其他欄位
+- 老闆建立的任務 → Agent 可修改 `status`、`title`、`description`、`assigned_to`，不可刪除
 - Agent 自建的任務 → 建立者擁有完全修改權限
 - 其他 Agent 的任務 → 不可修改
 
@@ -291,9 +291,14 @@ Agent 可定時呼叫此工具，檢查老闆是否已回答問題。
   "items_waiting_for_boss": [
     { "type": "question", "id": "...", "waiting_since": "2026-04-08T02:00:00Z" },
     { "type": "review", "id": "...", "task_id": "...", "waiting_since": "2026-04-08T01:30:00Z" }
+  ],
+  "orphan_tasks": [
+    { "task_id": "...", "title": "被遺忘的任務", "status": "in_progress", "assigned_to": "boss", "stuck_since": "2026-04-07T10:00:00Z" }
   ]
 }
 ```
+
+`orphan_tasks` 是卡在 pending/in_progress/blocked 但沒有 pending question 的任務 — Agent 應主動檢查並推進這些被遺忘的任務。
 
 Agent 每次 session 開始時應先呼叫 `dashboard` 同步狀態。
 

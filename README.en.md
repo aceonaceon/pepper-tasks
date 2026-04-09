@@ -154,7 +154,7 @@ Agents interact with the system through MCP tools. All mutation tools require a 
 | `caller` | string | ✅ | Caller identity |
 
 **Permission rules:**
-- Boss-created tasks → Agents can modify `status`, `title`, and `description`; cannot delete or change other fields
+- Boss-created tasks → Agents can modify `status`, `title`, `description`, and `assigned_to`; cannot delete
 - Self-created tasks → Full CRUD for the creating agent
 - Other agents' tasks → Cannot modify
 
@@ -291,9 +291,14 @@ Useful for learning boss preferences and avoiding repeated mistakes.
   "items_waiting_for_boss": [
     { "type": "question", "id": "...", "waiting_since": "2026-04-08T02:00:00Z" },
     { "type": "review", "id": "...", "task_id": "...", "waiting_since": "2026-04-08T01:30:00Z" }
+  ],
+  "orphan_tasks": [
+    { "task_id": "...", "title": "Forgotten task", "status": "in_progress", "assigned_to": "boss", "stuck_since": "2026-04-07T10:00:00Z" }
   ]
 }
 ```
+
+`orphan_tasks` are tasks stuck in pending/in_progress/blocked with no pending question — Agents should proactively check and advance these forgotten tasks.
 
 Agents should call `dashboard` at the start of each session to sync state.
 

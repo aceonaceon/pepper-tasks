@@ -139,7 +139,7 @@ function assertCanUpdate(
   if (caller === "boss") return;
 
   if (task.created_by === "boss") {
-    const allowedFields = new Set(["status", "title", "description"]);
+    const allowedFields = new Set(["status", "title", "description", "assigned_to"]);
     for (const key of Object.keys(updates)) {
       if ((updates as Record<string, unknown>)[key] !== undefined && !allowedFields.has(key)) {
         throw new PermissionError(

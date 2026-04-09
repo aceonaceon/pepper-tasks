@@ -86,6 +86,13 @@ export interface DashboardData {
     title?: string;
     waiting_since: string;
   }>;
+  orphan_tasks: Array<{
+    task_id: string;
+    title: string;
+    status: string;
+    assigned_to: string;
+    stuck_since: string;
+  }>;
 }
 
 export interface TaskDetail {

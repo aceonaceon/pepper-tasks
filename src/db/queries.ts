@@ -260,6 +260,36 @@ export function getItemsWaitingForBoss(): Array<{
   );
 }
 
+/**
+ * Find orphan tasks: stuck in pending/in_progress/blocked but have no pending question.
+ * These tasks need Agent attention but may have been forgotten.
+ */
+export function getOrphanTasks(): Array<{
+  task_id: string;
+  title: string;
+  status: string;
+  assigned_to: string;
+  stuck_since: string;
+}> {
+  return getDb()
+    .prepare(
+      `SELECT t.id as task_id, t.title, t.status, t.assigned_to, t.updated_at as stuck_since
+       FROM tasks t
+       WHERE t.status IN ('pending', 'in_progress', 'blocked')
+       AND t.id NOT IN (
+         SELECT DISTINCT task_id FROM questions WHERE task_id IS NOT NULL AND status = 'pending'
+       )
+       ORDER BY t.updated_at ASC`
+    )
+    .all() as Array<{
+    task_id: string;
+    title: string;
+    status: string;
+    assigned_to: string;
+    stuck_since: string;
+  }>;
+}
+
 export function getFeedbackHistory(
   agentId?: string,
   limit: number = 20
