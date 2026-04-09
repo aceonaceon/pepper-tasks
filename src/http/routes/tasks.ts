@@ -4,8 +4,8 @@ import * as taskService from "../../core/task-service";
 const app = new Hono();
 
 app.get("/", (c) => {
-  const { status, assigned_to, created_by, quadrant } = c.req.query();
-  const tasks = taskService.listTasks({ status, assigned_to, created_by, quadrant });
+  const { status, assigned_to, created_by, quadrant, search } = c.req.query();
+  const tasks = taskService.listTasks({ status, assigned_to, created_by, quadrant, search });
   return c.json(tasks);
 });
 

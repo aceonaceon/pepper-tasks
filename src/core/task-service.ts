@@ -107,6 +107,7 @@ export function listTasks(filters: {
   assigned_to?: string;
   created_by?: string;
   quadrant?: string;
+  search?: string;
 }) {
   return queries.listTasks(filters);
 }

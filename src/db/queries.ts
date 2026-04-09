@@ -41,12 +41,17 @@ export function listTasks(filters: {
   created_by?: string;
   quadrant?: string;
   parent_task_id?: string;
+  search?: string;
 }): Task[] {
   const conditions: string[] = [];
   const params: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined) {
+    if (value === undefined) continue;
+    if (key === "search") {
+      conditions.push("(title LIKE @search OR description LIKE @search)");
+      params.search = `%${value}%`;
+    } else {
       conditions.push(`${key} = @${key}`);
       params[key] = value;
     }

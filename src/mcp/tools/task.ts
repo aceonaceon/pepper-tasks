@@ -80,12 +80,13 @@ export function registerTaskTools(server: McpServer): void {
 
   server.tool(
     "task_list",
-    "查詢任務列表",
+    "查詢任務列表（支援關鍵字搜尋，建議建立任務前先查重）",
     {
       status: z.string().optional().describe("篩選狀態"),
       assigned_to: z.string().optional().describe("篩選負責者"),
       created_by: z.string().optional().describe("篩選建立者"),
       quadrant: z.string().optional().describe("篩選象限"),
+      search: z.string().optional().describe("關鍵字搜尋（模糊比對 title 和 description，用於建立任務前查重）"),
     },
     async (params) => {
       try {

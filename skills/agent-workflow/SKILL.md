@@ -45,6 +45,8 @@ pepper-tasks 裡不應該有任何球停在 Agent 手上的任務。
 - **不等老闆逐步指揮**：老闆說一句你做十步，不是老闆說十句你做一步
 - **不建立沒有下一步行動的任務**：每個任務都必須有明確的完成標準
 - **不留下沒有 checkpoint 的任務**：description 必須隨時反映最新進度
+- **不建立重複任務**：建任務前必須用 `task_list(search: "關鍵字")` 查重，有既有任務就更新它
+- **不留下殭屍子任務**：父任務完成時，所有子任務都必須標為 completed 或 archived
 
 ### ✅ 永遠要做
 - **先研究再提問**：能 Google 到的不要問，能推理出來的不要問
@@ -106,7 +108,21 @@ pepper-tasks 裡不應該有任何球停在 Agent 手上的任務。
 - 缺少關鍵資訊且無法自行查到 → 建立**結構化問題**（見下方提問規範）
 - 模糊但可以先做研究 → 帶著假設進入 Phase 2，研究後再確認
 
-**在 pepper-tasks 建立主任務：**
+**⚠️ 建立任務前必須查重：**
+
+在建立任何新任務之前，先用 `task_list` 的 `search` 參數搜尋是否已有相同或相似的任務：
+
+```
+→ task_list({ search: "關鍵字", caller: "agent:{your_name}" })
+```
+
+**查重規則：**
+- 如果找到相同主題的任務且狀態是 `pending` / `in_progress` / `blocked` → **不要建新任務**，直接更新既有任務的 description 和 status
+- 如果找到相同主題但已 `completed` / `archived` → 可以建新任務（新一輪工作）
+- 如果找到相同主題的 `review` 任務 → 等老闆覆核，不要重複建立
+- 搜尋時用核心關鍵字，不要用完整標題（例如搜「Kaplan 住宿」而不是搜「蔡東諺 Kaplan 住宿 — 等 Jackie 確認 HOEM」）
+
+**在 pepper-tasks 建立主任務（確認不重複後）：**
 ```
 → task_create({
     title: "明確的任務標題（不是老闆的原話，是你理解後的標題）",
@@ -370,16 +386,18 @@ question_type: "open_ended"
 
 **老闆批准（completed）：**
 ```
-→ 確認所有子任務也已完成
-→ 如果有後續行動，建立新的主任務
+→ 確認所有子任務也已完成（未完成的標為 completed 或 archived）
+→ 清理殘留的 pending / in_progress / blocked 子任務
+→ 如果有後續行動，建立新的主任務（先查重！）
 ```
 
 **老闆退回（in_progress + feedback）：**
 ```
 → review_get(task_id: "...")           // 讀取 feedback
 → feedback_history(agent_id: "...")    // 參考歷史偏好
-→ 根據 feedback 修正
-→ 重新提交 review
+→ 直接在原任務上修正（更新 description 寫入修正內容）
+→ 不要建立新的子任務或重複任務
+→ 修正完成後重新 task_update(status: "review")
 ```
 
 **學習機制：**

@@ -43,18 +43,8 @@ export function submitReview(
         comment,
       });
       audit.log(taskId, reviewer, "status_changed", "review", "in_progress");
-
-      // Create a revision sub-task with the feedback
-      taskService.createTask(
-        {
-          title: `[修正] ${task.title}`,
-          description: `Feedback: ${comment}`,
-          assigned_to: task.assigned_to,
-          quadrant: task.quadrant,
-          parent_task_id: taskId,
-        },
-        "system"
-      );
+      // No auto-created [修正] sub-task — Agent reads the feedback via
+      // review_get / feedback_history and decides how to proceed.
     }
   });
   tx();
