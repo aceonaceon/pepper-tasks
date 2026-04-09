@@ -5,9 +5,9 @@ import * as questionService from "../../core/question-service";
 export function registerQuestionTools(server: McpServer): void {
   server.tool(
     "question_create",
-    "建立結構化問題，等待老闆回答",
+    "建立結構化問題，等待老闆回答。必須先建立任務再提問，這樣老闆回答後系統才能自動解除任務的 blocked 狀態。",
     {
-      task_id: z.string().optional().describe("關聯任務 ID"),
+      task_id: z.string().describe("關聯任務 ID（必填 — 先用 task_create 建立任務，再用此工具提問）"),
       question_type: z
         .enum(["yes_no", "single_choice", "multi_choice", "datetime", "open_ended"])
         .describe("問題類型"),

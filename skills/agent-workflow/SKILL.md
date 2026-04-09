@@ -296,7 +296,14 @@ pepper-tasks 裡不應該有任何球停在 Agent 手上的任務。
 
 **阻塞處理（Blocked Handling）：**
 
-當你真的需要老闆決策時（已窮盡自行研究的可能），才進入 blocked：
+當你真的需要老闆決策時（已窮盡自行研究的可能），才進入 blocked。
+
+**⚠️ blocked 三件套 — 缺一不可：**
+1. 先有一個 task（用 `task_create` 或既有任務）
+2. 建立 `question_create`，**必須帶 `task_id`**
+3. 把該任務 `task_update(status: "blocked")`
+
+這三步必須一起做。如果沒有 task_id，老闆回答後系統無法自動解除 blocked 狀態。如果沒有 question_create，老闆不知道你在等什麼。
 
 ```
 → question_create({
