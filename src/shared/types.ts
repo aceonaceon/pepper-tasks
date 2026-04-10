@@ -19,7 +19,7 @@ export type QuestionType =
   | "datetime"
   | "open_ended";
 
-export type QuestionStatus = "pending" | "answered";
+export type QuestionStatus = "pending" | "answered" | "acknowledged";
 
 export interface Task {
   id: string;

@@ -108,5 +108,11 @@ export function listQuestions(filters: {
 export function getAnswer(questionId: string) {
   const question = queries.getQuestionById(questionId);
   if (!question) throw new NotFoundError("Question", questionId);
-  return question;
+
+  // Auto-acknowledge: Agent 讀過答案就標記已讀，從 action_items 移除
+  if (question.status === "answered") {
+    queries.updateQuestionStatus(questionId, "acknowledged");
+  }
+
+  return queries.getQuestionById(questionId)!;
 }

@@ -96,6 +96,12 @@ export function updateQuestionAnswer(
     .run(answer, answeredAt, id);
 }
 
+export function updateQuestionStatus(id: string, status: string): void {
+  getDb()
+    .prepare("UPDATE questions SET status = ? WHERE id = ?")
+    .run(status, id);
+}
+
 export function getQuestionById(id: string): Question | undefined {
   return getDb()
     .prepare("SELECT * FROM questions WHERE id = ?")
@@ -312,7 +318,7 @@ export function getActionItems(agentId?: string): Array<{
       `SELECT 1 as priority, 'answered_question' as type, q.id, q.task_id,
               q.question_text as title, q.answer as context, q.answered_at as since
        FROM questions q
-       WHERE q.status = 'answered' AND q.answered_at > datetime('now', '-48 hours')
+       WHERE q.status = 'answered'
        ORDER BY q.answered_at ASC`
     )
     .all() as Array<any>;

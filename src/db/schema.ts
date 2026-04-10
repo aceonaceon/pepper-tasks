@@ -31,7 +31,7 @@ export function initializeSchema(db: Database.Database): void {
       options TEXT,
       answer TEXT,
       status TEXT NOT NULL DEFAULT 'pending'
-        CHECK(status IN ('pending','answered')),
+        CHECK(status IN ('pending','answered','acknowledged')),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       answered_at TEXT
     );
@@ -59,6 +59,37 @@ export function initializeSchema(db: Database.Database): void {
 
   // Migration: add description column to existing questions table
   try { db.exec("ALTER TABLE questions ADD COLUMN description TEXT"); } catch {}
+
+  // Migration: add 'acknowledged' to questions status CHECK constraint
+  // SQLite cannot ALTER CHECK constraints, so we recreate the table
+  try {
+    const hasAcknowledged = db.prepare(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='questions'"
+    ).get() as { sql: string } | undefined;
+    if (hasAcknowledged && !hasAcknowledged.sql.includes("acknowledged")) {
+      db.exec(`
+        CREATE TABLE questions_new (
+          id TEXT PRIMARY KEY,
+          task_id TEXT REFERENCES tasks(id),
+          created_by TEXT NOT NULL,
+          assigned_to TEXT NOT NULL,
+          question_type TEXT NOT NULL
+            CHECK(question_type IN ('yes_no','single_choice','multi_choice','datetime','open_ended')),
+          question_text TEXT NOT NULL,
+          description TEXT,
+          options TEXT,
+          answer TEXT,
+          status TEXT NOT NULL DEFAULT 'pending'
+            CHECK(status IN ('pending','answered','acknowledged')),
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          answered_at TEXT
+        );
+        INSERT INTO questions_new SELECT id, task_id, created_by, assigned_to, question_type, question_text, description, options, answer, status, created_at, answered_at FROM questions;
+        DROP TABLE questions;
+        ALTER TABLE questions_new RENAME TO questions;
+      `);
+    }
+  } catch {}
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
