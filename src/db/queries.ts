@@ -297,10 +297,21 @@ export function getOrphanTasks(): Array<{
 }
 
 /**
+ * Batch-acknowledge all answered questions for a task.
+ * Called automatically when task status changes or Agent reads any answer for the task.
+ */
+export function acknowledgeAnsweredQuestions(taskId: string): number {
+  return getDb()
+    .prepare("UPDATE questions SET status = 'acknowledged' WHERE task_id = ? AND status = 'answered'")
+    .run(taskId).changes;
+}
+
+/**
  * Get a priority-sorted action items list for the Agent.
  * Agent just calls dashboard() once and processes items top-to-bottom.
+ * @param cutoffDays - Only show answered questions within this many days (default 7)
  */
-export function getActionItems(agentId?: string): Array<{
+export function getActionItems(agentId?: string, cutoffDays: number = 7): Array<{
   priority: number;
   type: string;
   id: string;
@@ -312,16 +323,40 @@ export function getActionItems(agentId?: string): Array<{
   const db = getDb();
   const agentFilter = agentId ? ` AND t.assigned_to = '${agentId}'` : "";
 
-  // Priority 1: Answered questions (boss replied, Agent hasn't processed)
-  const answeredQs = db
+  // Priority 1: Answered questions — deduped by task_id (同 task 只顯示 1 行)
+  // Questions with task_id: group by task, show count + latest question id
+  const answeredWithTask = db
+    .prepare(
+      `SELECT 1 as priority, 'answered_question' as type,
+              (SELECT q2.id FROM questions q2
+               WHERE q2.task_id = q.task_id AND q2.status = 'answered'
+               ORDER BY q2.answered_at DESC LIMIT 1) as id,
+              q.task_id,
+              COALESCE(t.title, q.task_id) as title,
+              COUNT(*) || ' 個已回覆問題' as context,
+              MAX(q.answered_at) as since
+       FROM questions q
+       LEFT JOIN tasks t ON q.task_id = t.id
+       WHERE q.status = 'answered' AND q.task_id IS NOT NULL
+       AND q.answered_at > datetime('now', '-' || ? || ' days')
+       GROUP BY q.task_id
+       ORDER BY MAX(q.answered_at) ASC`
+    )
+    .all(cutoffDays) as Array<any>;
+
+  // Questions without task_id: show individually
+  const answeredNoTask = db
     .prepare(
       `SELECT 1 as priority, 'answered_question' as type, q.id, q.task_id,
               q.question_text as title, q.answer as context, q.answered_at as since
        FROM questions q
-       WHERE q.status = 'answered'
+       WHERE q.status = 'answered' AND q.task_id IS NULL
+       AND q.answered_at > datetime('now', '-' || ? || ' days')
        ORDER BY q.answered_at ASC`
     )
-    .all() as Array<any>;
+    .all(cutoffDays) as Array<any>;
+
+  const answeredQs = [...answeredWithTask, ...answeredNoTask];
 
   // Priority 2: Recently rejected tasks (boss gave feedback)
   const rejectedTasks = db

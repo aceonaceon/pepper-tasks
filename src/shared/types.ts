@@ -133,6 +133,17 @@ export interface DashboardData {
   }>;
 }
 
+export interface DashboardLiteData {
+  action_items: DashboardData["action_items"];
+  unanswered_questions: number;
+  summary: {
+    pending: number;
+    in_progress: number;
+    blocked: number;
+    review: number;
+  };
+}
+
 export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   pending: ["in_progress"],
   in_progress: ["blocked", "review"],

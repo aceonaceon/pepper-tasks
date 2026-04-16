@@ -83,6 +83,9 @@ export function updateTask(
 
     if (updates.status && updates.status !== task.status) {
       audit.log(taskId, caller, "status_changed", task.status, updates.status);
+      // Auto-acknowledge all answered questions for this task
+      // so they disappear from action_items without Agent needing question_get_answer
+      queries.acknowledgeAnsweredQuestions(taskId);
     }
 
     const changedFields = Object.keys(updateFields).filter((k) => k !== "status");

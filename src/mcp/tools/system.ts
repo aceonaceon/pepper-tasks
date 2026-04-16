@@ -21,6 +21,22 @@ export function registerSystemTools(server: McpServer): void {
   );
 
   server.tool(
+    "dashboard_lite",
+    "輕量行動清單（≤24h 新事件）。適合 session 中段 heartbeat，不會載入完整歷史。session 開始請用 dashboard()。",
+    {
+      agent_id: z.string().optional().describe("篩選特定 Agent"),
+    },
+    async (params) => {
+      try {
+        const data = dashboardService.getDashboardLite(params.agent_id);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err: any) {
+        return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+      }
+    }
+  );
+
+  server.tool(
     "audit_log",
     "任務歷史變更紀錄",
     {

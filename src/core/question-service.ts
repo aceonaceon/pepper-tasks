@@ -110,8 +110,13 @@ export function getAnswer(questionId: string) {
   if (!question) throw new NotFoundError("Question", questionId);
 
   // Auto-acknowledge: Agent 讀過答案就標記已讀，從 action_items 移除
+  // 同 task 的所有 answered questions 一起 acknowledge（避免逐個讀）
   if (question.status === "answered") {
-    queries.updateQuestionStatus(questionId, "acknowledged");
+    if (question.task_id) {
+      queries.acknowledgeAnsweredQuestions(question.task_id);
+    } else {
+      queries.updateQuestionStatus(questionId, "acknowledged");
+    }
   }
 
   return queries.getQuestionById(questionId)!;

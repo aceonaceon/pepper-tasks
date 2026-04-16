@@ -9,4 +9,10 @@ app.get("/", (c) => {
   return c.json(data);
 });
 
+app.get("/lite", (c) => {
+  const { agent_id } = c.req.query();
+  const data = dashboardService.getDashboardLite(agent_id);
+  return c.json(data);
+});
+
 export default app;
