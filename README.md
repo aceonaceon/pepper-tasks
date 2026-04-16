@@ -130,9 +130,15 @@ Agent 透過 MCP 工具與系統互動。所有修改類工具都需要 `caller`
 | `description` | string | | 詳細描述 |
 | `assigned_to` | string | ✅ | 負責者（`boss` / `agent:{name}`） |
 | `quadrant` | enum | | 艾森豪象限（見下方） |
+| `task_type` | enum | | 任務生命週期（見下方） |
 | `deadline` | string | | 截止時間（ISO 8601） |
 | `parent_task_id` | string | | 父任務 ID（建立子任務用） |
 | `caller` | string | ✅ | 呼叫者身份 |
+
+**任務類型（task_type）選項：**
+- `ephemeral` — 一次性任務（Daily Briefing、新聞通知等），完成後 48 小時自動歸檔
+- `tracking` — 持續追蹤（預設值）
+- `project` — 長期專案
 
 **象限（quadrant）選項：**
 - `urgent_important` — 緊急且重要（立即處理）
@@ -237,7 +243,29 @@ Agent 需要老闆決策時，建立結構化問題。老闆在 Web UI 中回答
 |------|------|------|------|
 | `question_id` | string | ✅ | 問題 ID |
 
-Agent 可定時呼叫此工具，檢查老闆是否已回答問題。
+**回傳內容：** 除了問題本體外，還包含關聯任務的上下文（`task` 欄位），Agent 一次呼叫即可取得完整資訊：
+
+```json
+{
+  "id": "q-xxx",
+  "question_text": "這封信要怎麼處理？",
+  "answer": "{\"feedback\":\"用你的 Email 發\",\"action_hint\":\"agent_action_needed\"}",
+  "status": "acknowledged",
+  "task": {
+    "id": "t-xxx",
+    "title": "📬 CalArts Welcome 信件",
+    "description": "CalArts 寄來的 welcome packet...",
+    "status": "in_progress"
+  }
+}
+```
+
+**action_hint：** 老闆回答時可選擇標記意圖，存在 answer JSON 中：
+- `complete_task` — 可結案
+- `agent_action_needed` — Agent 需執行動作
+- `keep_tracking` — 繼續追蹤
+
+**自動已讀：** 呼叫此工具後，同 task 的所有 answered questions 自動標記為 `acknowledged`，從 `action_items` 移除。推進 task 狀態（`task_update`）也會觸發自動已讀。
 
 ---
 
@@ -309,6 +337,21 @@ Agent 可定時呼叫此工具，檢查老闆是否已回答問題。
 - 設定 `blocked` 時若無 pending question → 自動拒絕（ValidationError）
 - 父任務被批准時 → 子任務自動 archived
 - 孤兒任務自動出現在 action_items priority 3
+- 同 task 的 answered questions 自動去重（合併顯示）
+- 推進 task 狀態時 → 該 task 的 answered questions 自動已讀
+- `ephemeral` 任務完成超過 48h → 自動歸檔
+
+#### `dashboard_lite` — 輕量行動清單
+
+| 參數 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `agent_id` | string | | 篩選特定 Agent |
+
+只回傳近 24 小時的 `action_items` + 任務數量摘要。適合 session 中段的 heartbeat 輪詢，避免每次都載入完整 dashboard。
+
+**建議用法：**
+- Session 開始 → `dashboard()`（完整版）
+- 中段 heartbeat → `dashboard_lite()`（輕量版）
 
 #### `audit_log` — 任務歷史變更紀錄
 

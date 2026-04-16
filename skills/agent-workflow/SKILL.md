@@ -92,13 +92,19 @@ dashboard 回傳的 `action_items` 已經按優先級排好序了，你不需要
 
 | Priority | 類型 | 說明 | 你要做什麼 |
 |----------|------|------|-----------|
-| 1 | `answered_question` | 老闆已回覆的問題 | 讀取答案，根據決策繼續推進任務 |
+| 1 | `answered_question` | 老闆已回覆的問題 | 讀取答案（`context` 含摘要），根據決策推進任務。需要完整上下文時呼叫 `question_get_answer`（會附帶 task 上下文） |
 | 2 | `rejected_review` | 老闆退回的任務 | 讀取 feedback（在 `context` 裡），修正後重新提交 review |
 | 3 | `orphan_task` | 卡住的任務（沒有 pending question） | 接手或修正狀態 |
 | 4 | `in_progress_task` | 你正在進行的任務 | 讀取 description 裡的 checkpoint，從斷點繼續 |
 | 5 | `pending_task` | 待處理的任務 | 開始執行 |
 
-**每個 action_item 都有 `context` 欄位**，裡面是老闆的回答、退回 feedback、或 checkpoint 內容預覽。不需要額外呼叫其他 API。
+**action_hint：** 老闆的回答可能包含 `action_hint` 欄位（在 answer JSON 裡）：
+- `complete_task` → 直接結案，不需要額外動作
+- `agent_action_needed` → 老闆要你去執行某個動作，用 `question_get_answer` 讀完整上下文
+- `keep_tracking` → 不需要動作，繼續追蹤
+- 沒有 hint → 用你的判斷
+
+**自動已讀：** 你不需要逐個呼叫 `question_get_answer` 來清理 action_items。推進 task 狀態（`task_update`）時，該 task 的所有 answered questions 會自動標記已讀。
 
 **只有當 action_items 全部處理完畢（所有球都推到老闆端），才接新指令。**
 
@@ -142,10 +148,20 @@ dashboard 回傳的 `action_items` 已經按優先級排好序了，你不需要
     description: "老闆原始指令 + 你的解讀 + 預計產出物",
     assigned_to: "agent:{your_name}",
     quadrant: "根據緊急/重要程度判斷",
+    task_type: "根據任務性質選擇（見下方）",
     deadline: "如果老闆有提到時間就設定",
     caller: "agent:{your_name}"
   })
 ```
+
+**task_type 選擇指南：**
+| 類型 | 使用時機 | 範例 |
+|------|---------|------|
+| `ephemeral` | 一次性、短生命週期 | Daily Briefing、新聞通知、投資練習、一次性提醒 |
+| `tracking` | 持續追蹤（預設） | 客戶跟進、專案子任務、待確認事項 |
+| `project` | 長期專案 | 網站改版、產品開發、研究計畫 |
+
+`ephemeral` 任務完成後 48 小時會自動歸檔，不需要你手動清理。
 
 ### Phase 2：自主研究（Research）
 
@@ -539,11 +555,13 @@ Phase 0 會自動掃描到這些任務，讀取 checkpoint，從斷點繼續。
 
 ### 你被喚醒時要做什麼
 
-每次被 heartbeat 喚醒，執行 Phase 0（狀態同步與斷點續作）：
-1. 掃描所有未完成任務
-2. 檢查老闆是否有新的回覆或覆核
-3. 如果有待處理的工作 → 繼續推進
-4. 如果沒有 → 安靜結束，不打擾老闆
+每次被 heartbeat 喚醒，用 `dashboard_lite(agent_id)` 快速檢查（只載入 24h 內的事件，payload 小）：
+1. 有 action_items → 切到完整 `dashboard()` 並執行 Phase 0
+2. 沒有 action_items → 安靜結束，不打擾老闆
+
+**Session 內的 heartbeat：**
+- Session 開始 → `dashboard(agent_id)`（完整版）
+- 中段輪詢 → `dashboard_lite(agent_id)`（輕量版，節省 token）
 
 ### 建議的輪詢頻率
 

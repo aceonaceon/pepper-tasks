@@ -130,9 +130,15 @@ Agents interact with the system through MCP tools. All mutation tools require a 
 | `description` | string | | Detailed description |
 | `assigned_to` | string | ✅ | Assignee (`boss` / `agent:{name}`) |
 | `quadrant` | enum | | Eisenhower matrix quadrant |
+| `task_type` | enum | | Task lifecycle type (see below) |
 | `deadline` | string | | Deadline (ISO 8601) |
 | `parent_task_id` | string | | Parent task ID (for sub-tasks) |
 | `caller` | string | ✅ | Caller identity |
+
+**Task type options:**
+- `ephemeral` — One-off tasks (daily briefings, news alerts, etc.), auto-archived 48h after completion
+- `tracking` — Ongoing tracking (default)
+- `project` — Long-term project
 
 **Quadrant options:**
 - `urgent_important` — Do it now
@@ -237,7 +243,29 @@ When agents need the boss's decision, they create structured questions. The boss
 |-----------|------|----------|-------------|
 | `question_id` | string | ✅ | Question ID |
 
-Agents can poll this tool to check if the boss has responded.
+**Returns:** In addition to the question object, includes the related task context (`task` field) so the Agent gets the full picture in one call:
+
+```json
+{
+  "id": "q-xxx",
+  "question_text": "How should we handle this email?",
+  "answer": "{\"feedback\":\"Send from your email\",\"action_hint\":\"agent_action_needed\"}",
+  "status": "acknowledged",
+  "task": {
+    "id": "t-xxx",
+    "title": "📬 CalArts Welcome Letter",
+    "description": "CalArts sent a welcome packet...",
+    "status": "in_progress"
+  }
+}
+```
+
+**action_hint:** Boss can tag answers with intent (stored in answer JSON):
+- `complete_task` — Task is done
+- `agent_action_needed` — Agent needs to take action
+- `keep_tracking` — Continue tracking, no action needed
+
+**Auto-acknowledge:** Calling this tool auto-acknowledges all answered questions for the same task, removing them from `action_items`. Advancing the task status via `task_update` also triggers auto-acknowledge.
 
 ---
 
@@ -309,6 +337,21 @@ Useful for learning boss preferences and avoiding repeated mistakes.
 - Setting `blocked` without a pending question → auto-rejected (ValidationError)
 - Parent task approved → sub-tasks auto-archived
 - Orphan tasks automatically appear in action_items priority 3
+- Answered questions for the same task are deduplicated (merged display)
+- Advancing task status → auto-acknowledges all answered questions for that task
+- `ephemeral` tasks auto-archived 48h after completion
+
+#### `dashboard_lite` — Lightweight action list
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `agent_id` | string | | Filter by agent |
+
+Returns only the last 24 hours of `action_items` plus task count summary. Ideal for mid-session heartbeat polling — avoids loading the full dashboard every time.
+
+**Recommended usage:**
+- Session start → `dashboard()` (full)
+- Mid-session heartbeat → `dashboard_lite()` (lightweight)
 
 #### `audit_log` — Task change history
 
