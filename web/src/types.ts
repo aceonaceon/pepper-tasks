@@ -19,6 +19,8 @@ export type QuestionType =
   | "datetime"
   | "open_ended";
 
+export type TaskType = "ephemeral" | "tracking" | "project";
+
 export interface Task {
   id: string;
   title: string;
@@ -27,6 +29,7 @@ export interface Task {
   assigned_to: string;
   status: TaskStatus;
   quadrant: Quadrant;
+  task_type: TaskType;
   deadline: string | null;
   parent_task_id: string | null;
   created_at: string;

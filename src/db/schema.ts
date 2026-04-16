@@ -13,6 +13,8 @@ export function initializeSchema(db: Database.Database): void {
       quadrant TEXT DEFAULT 'not_urgent_not_important'
         CHECK(quadrant IN ('urgent_important','not_urgent_important',
                            'urgent_not_important','not_urgent_not_important')),
+      task_type TEXT NOT NULL DEFAULT 'tracking'
+        CHECK(task_type IN ('ephemeral','tracking','project')),
       deadline TEXT,
       parent_task_id TEXT REFERENCES tasks(id),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -56,6 +58,9 @@ export function initializeSchema(db: Database.Database): void {
     );
 
   `);
+
+  // Migration: add task_type column to existing tasks table
+  try { db.exec("ALTER TABLE tasks ADD COLUMN task_type TEXT NOT NULL DEFAULT 'tracking' CHECK(task_type IN ('ephemeral','tracking','project'))"); } catch {}
 
   // Migration: add description column to existing questions table
   try { db.exec("ALTER TABLE questions ADD COLUMN description TEXT"); } catch {}

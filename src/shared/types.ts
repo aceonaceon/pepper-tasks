@@ -12,6 +12,8 @@ export type Quadrant =
   | "urgent_not_important"
   | "not_urgent_not_important";
 
+export type TaskType = "ephemeral" | "tracking" | "project";
+
 export type QuestionType =
   | "yes_no"
   | "single_choice"
@@ -29,6 +31,7 @@ export interface Task {
   assigned_to: string;
   status: TaskStatus;
   quadrant: Quadrant;
+  task_type: TaskType;
   deadline: string | null;
   parent_task_id: string | null;
   created_at: string;
@@ -74,6 +77,7 @@ export interface CreateTaskParams {
   description?: string;
   assigned_to: string;
   quadrant?: Quadrant;
+  task_type?: TaskType;
   deadline?: string;
   parent_task_id?: string;
 }

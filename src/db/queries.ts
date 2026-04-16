@@ -11,8 +11,8 @@ import type {
 export function insertTask(task: Task): void {
   getDb()
     .prepare(
-      `INSERT INTO tasks (id, title, description, created_by, assigned_to, status, quadrant, deadline, parent_task_id, created_at, updated_at)
-       VALUES (@id, @title, @description, @created_by, @assigned_to, @status, @quadrant, @deadline, @parent_task_id, @created_at, @updated_at)`
+      `INSERT INTO tasks (id, title, description, created_by, assigned_to, status, quadrant, task_type, deadline, parent_task_id, created_at, updated_at)
+       VALUES (@id, @title, @description, @created_by, @assigned_to, @status, @quadrant, @task_type, @deadline, @parent_task_id, @created_at, @updated_at)`
     )
     .run(task);
 }
@@ -297,6 +297,20 @@ export function getOrphanTasks(): Array<{
 }
 
 /**
+ * Auto-archive ephemeral tasks that have been completed for >48 hours.
+ * Called on dashboard read (check-on-read pattern, no cron needed).
+ */
+export function autoArchiveEphemeralTasks(): number {
+  return getDb()
+    .prepare(
+      `UPDATE tasks SET status = 'archived', updated_at = datetime('now')
+       WHERE task_type = 'ephemeral' AND status = 'completed'
+       AND updated_at < datetime('now', '-48 hours')`
+    )
+    .run().changes;
+}
+
+/**
  * Batch-acknowledge all answered questions for a task.
  * Called automatically when task status changes or Agent reads any answer for the task.
  */
@@ -324,7 +338,7 @@ export function getActionItems(agentId?: string, cutoffDays: number = 7): Array<
   const agentFilter = agentId ? ` AND t.assigned_to = '${agentId}'` : "";
 
   // Priority 1: Answered questions — deduped by task_id (同 task 只顯示 1 行)
-  // Questions with task_id: group by task, show count + latest question id
+  // Questions with task_id: group by task, show count + latest answer summary
   const answeredWithTask = db
     .prepare(
       `SELECT 1 as priority, 'answered_question' as type,
@@ -333,7 +347,11 @@ export function getActionItems(agentId?: string, cutoffDays: number = 7): Array<
                ORDER BY q2.answered_at DESC LIMIT 1) as id,
               q.task_id,
               COALESCE(t.title, q.task_id) as title,
-              COUNT(*) || ' 個已回覆問題' as context,
+              COUNT(*) || ' 個已回覆問題；最新：' || substr(
+                (SELECT q3.answer FROM questions q3
+                 WHERE q3.task_id = q.task_id AND q3.status = 'answered'
+                 ORDER BY q3.answered_at DESC LIMIT 1), 1, 120
+              ) as context,
               MAX(q.answered_at) as since
        FROM questions q
        LEFT JOIN tasks t ON q.task_id = t.id

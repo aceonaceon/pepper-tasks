@@ -25,6 +25,7 @@ export function createTask(params: CreateTaskParams, caller: string): Task {
     assigned_to: params.assigned_to,
     status: "pending",
     quadrant: params.quadrant || "not_urgent_not_important",
+    task_type: params.task_type || "tracking",
     deadline: params.deadline || null,
     parent_task_id: params.parent_task_id || null,
     created_at: now,

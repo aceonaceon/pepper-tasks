@@ -119,5 +119,16 @@ export function getAnswer(questionId: string) {
     }
   }
 
-  return queries.getQuestionById(questionId)!;
+  const updatedQuestion = queries.getQuestionById(questionId)!;
+
+  // Attach task context so Agent has full picture in one API call
+  let task: { id: string; title: string; description: string; status: string } | null = null;
+  if (updatedQuestion.task_id) {
+    const t = queries.getTaskById(updatedQuestion.task_id);
+    if (t) {
+      task = { id: t.id, title: t.title, description: t.description, status: t.status };
+    }
+  }
+
+  return { ...updatedQuestion, task };
 }

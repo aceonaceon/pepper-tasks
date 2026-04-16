@@ -19,6 +19,10 @@ export function registerTaskTools(server: McpServer): void {
         ])
         .optional()
         .describe("艾森豪象限"),
+      task_type: z
+        .enum(["ephemeral", "tracking", "project"])
+        .optional()
+        .describe("任務生命週期：ephemeral=一次性（完成後 48h 自動歸檔）、tracking=持續追蹤（預設）、project=長期專案"),
       deadline: z.string().optional().describe("截止時間 (ISO 8601)"),
       parent_task_id: z.string().optional().describe("父任務 ID"),
       caller: z.string().describe("呼叫者身份（boss / agent:{name}）"),
@@ -31,6 +35,7 @@ export function registerTaskTools(server: McpServer): void {
             description: params.description,
             assigned_to: params.assigned_to,
             quadrant: params.quadrant,
+            task_type: params.task_type,
             deadline: params.deadline,
             parent_task_id: params.parent_task_id,
           },

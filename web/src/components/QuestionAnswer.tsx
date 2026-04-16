@@ -3,6 +3,8 @@ import { answerQuestion } from "../api";
 import { t } from "../i18n";
 import type { Question } from "../types";
 
+type ActionHint = "complete_task" | "agent_action_needed" | "keep_tracking" | null;
+
 interface Props {
   question: Question;
   onAnswered: () => void;
@@ -11,11 +13,21 @@ interface Props {
 export default function QuestionAnswer({ question, onAnswered }: Props) {
   const [value, setValue] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [actionHint, setActionHint] = useState<ActionHint>(null);
+
+  const wrapAnswer = (answer: unknown) => {
+    if (!actionHint) return answer;
+    // Wrap primitive answers into an object with hint
+    if (typeof answer === "object" && answer !== null) {
+      return { ...answer as Record<string, unknown>, action_hint: actionHint };
+    }
+    return { value: answer, action_hint: actionHint };
+  };
 
   const submit = async (answer: unknown) => {
     setSubmitting(true);
     try {
-      await answerQuestion(question.id, answer);
+      await answerQuestion(question.id, wrapAnswer(answer));
       onAnswered();
     } catch {
     } finally {
@@ -132,6 +144,7 @@ export default function QuestionAnswer({ question, onAnswered }: Props) {
   return (
     <div className="space-y-3">
       {answerUI}
+      <ActionHintSelector value={actionHint} onChange={setActionHint} />
       <RevisionSection
         submitting={submitting}
         onSubmit={(feedback) => submit({ type: "revision", feedback })}
@@ -189,6 +202,41 @@ function RevisionSection({
           {t.submitRevision}
         </button>
       </div>
+    </div>
+  );
+}
+
+const HINT_OPTIONS: { value: ActionHint; label: string; icon: string }[] = [
+  { value: null, label: "不指定", icon: "" },
+  { value: "complete_task", label: "可結案", icon: "\u{1F3C1}" },
+  { value: "agent_action_needed", label: "Agent 去做", icon: "\u{1F916}" },
+  { value: "keep_tracking", label: "繼續追蹤", icon: "\u{23F3}" },
+];
+
+function ActionHintSelector({
+  value,
+  onChange,
+}: {
+  value: ActionHint;
+  onChange: (v: ActionHint) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className="text-xs text-[var(--color-ink-faint)]">Agent 下一步：</span>
+      {HINT_OPTIONS.map((opt) => (
+        <button
+          key={opt.value ?? "none"}
+          type="button"
+          onClick={() => onChange(opt.value === value ? null : opt.value)}
+          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border ${
+            value === opt.value
+              ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
+              : "bg-[var(--color-surface-sunken)] text-[var(--color-ink-muted)] border-[var(--color-border)] hover:border-[var(--color-ink-faint)]"
+          }`}
+        >
+          {opt.icon ? `${opt.icon} ` : ""}{opt.label}
+        </button>
+      ))}
     </div>
   );
 }

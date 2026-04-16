@@ -2,6 +2,9 @@ import * as queries from "../db/queries";
 import type { DashboardData, DashboardLiteData } from "../shared/types";
 
 export function getDashboard(agentId?: string): DashboardData {
+  // Auto-archive: ephemeral tasks completed >48h ago
+  queries.autoArchiveEphemeralTasks();
+
   const statusCounts = queries.countTasksByStatus();
 
   return {
