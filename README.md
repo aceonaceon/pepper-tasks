@@ -54,6 +54,16 @@ pepper-tasks config
 
 > `config` 指令會自動偵測正確的 Node.js 路徑，避免多版本 Node（如 nvm）導致的 native addon 不匹配問題。即使版本不匹配，系統也會在啟動時自動重新編譯。
 
+**HTTP MCP（Streamable HTTP）：**
+
+`pepper-tasks start --port 3847` 會同時啟動 Web UI、REST API 和 HTTP MCP endpoint：
+
+```text
+http://localhost:3847/mcp
+```
+
+支援 `POST /mcp`、`GET /mcp`、`DELETE /mcp`，可供支援 Streamable HTTP MCP 的外部 client 直接以 URL 連線。
+
 **手動設定（系統只有一個 Node）：**
 
 ```json
@@ -92,27 +102,32 @@ pepper-tasks service uninstall   # 移除服務
 
 ```
 ┌──────────────────────────────────────┐
-│         單一 Node.js Process          │
+│   pepper-tasks start Node.js Process  │
 │                                      │
-│  ┌──────────┐  ┌──────────────────┐  │
-│  │ MCP Server│  │ HTTP Server      │  │
-│  │ (stdio)  │  │ (REST API + SPA) │  │
-│  └────┬─────┘  └────────┬─────────┘  │
-│       │                 │            │
-│       └────────┬────────┘            │
-│                │                     │
-│         ┌──────┴──────┐              │
-│         │   SQLite    │              │
-│         │  (.db 單檔)  │              │
-│         └─────────────┘              │
+│  ┌────────────────────────────────┐  │
+│  │ HTTP Server                    │  │
+│  │ REST API + SPA + HTTP MCP /mcp │  │
+│  └───────────────┬────────────────┘  │
+│                  │                   │
+│         ┌────────┴───────┐           │
+│         │   SQLite       │           │
+│         │  (.db 單檔)     │           │
+│         └────────┬───────┘           │
+└──────────────────┼───────────────────┘
+                   │
+┌──────────────────┼───────────────────┐
+│  pepper-tasks mcp Node.js Process     │
+│         ┌────────┴───────┐           │
+│         │ stdio MCP      │           │
+│         └────────────────┘           │
 └──────────────────────────────────────┘
-     ↑ stdio           ↑ HTTP
-     │                  │
-  Agent              瀏覽器
-(龍蝦/Claude Code)   (Web UI)
+     ↑ HTTP /mcp       ↑ stdio
+     │                 │
+  HTTP MCP Client    Agent
+  / Web UI           (龍蝦/Claude Code)
 ```
 
-Web UI 和 MCP 是兩個獨立 process，透過 SQLite WAL mode 安全共享同一個資料庫檔案。
+`pepper-tasks start` 在同一個 HTTP service 中提供 Web UI、REST API 與 Streamable HTTP MCP。`pepper-tasks mcp` 仍保留 stdio MCP，兩種模式透過 SQLite WAL mode 安全共享同一個資料庫檔案。
 
 ---
 
@@ -483,7 +498,7 @@ Agent 不會自己醒來。如果沒有定時任務，老闆回覆了問題、�
 ## CLI 完整指令
 
 ```
-pepper-tasks start    [--port 3847]              啟動 Web UI
+pepper-tasks start    [--port 3847]              啟動 Web UI / REST API / HTTP MCP
 pepper-tasks mcp                                 啟動 MCP Server（stdio）
 pepper-tasks config                              輸出 MCP 設定 JSON
 pepper-tasks service  [install|uninstall|status]  系統服務管理

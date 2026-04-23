@@ -9,6 +9,7 @@ import questionsRouter from "./routes/questions";
 import reviewsRouter from "./routes/reviews";
 import dashboardRouter from "./routes/dashboard";
 import auditRouter from "./routes/audit";
+import mcpRouter from "./routes/mcp";
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -26,7 +27,29 @@ const MIME_TYPES: Record<string, string> = {
 export function createApp() {
   const app = new Hono();
 
-  app.use("*", cors());
+  app.use(
+    "*",
+    cors({
+      origin: "*",
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowHeaders: [
+        "Accept",
+        "Content-Type",
+        "Mcp-Session-Id",
+        "Mcp-Protocol-Version",
+        "Last-Event-ID",
+        "mcp-session-id",
+        "mcp-protocol-version",
+        "last-event-id",
+      ],
+      exposeHeaders: [
+        "Mcp-Session-Id",
+        "Mcp-Protocol-Version",
+        "mcp-session-id",
+        "mcp-protocol-version",
+      ],
+    })
+  );
 
   // API routes
   app.route("/api/tasks", tasksRouter);
@@ -35,12 +58,22 @@ export function createApp() {
   app.route("/api/dashboard", dashboardRouter);
   app.route("/api/audit", auditRouter);
 
+  // Streamable HTTP MCP endpoint
+  app.route("/mcp", mcpRouter);
+  app.all("/mcp/*", (c) => c.notFound());
+
   // Static file serving for the React SPA
   const webRoot = resolve(__dirname, "web");
 
   app.get("*", (c) => {
-    // Don't serve static for API routes
-    if (c.req.path.startsWith("/api/")) return c.notFound();
+    // Don't serve static for API or MCP routes
+    if (
+      c.req.path.startsWith("/api/") ||
+      c.req.path === "/mcp" ||
+      c.req.path.startsWith("/mcp/")
+    ) {
+      return c.notFound();
+    }
 
     if (!existsSync(webRoot)) {
       return c.text(

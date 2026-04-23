@@ -54,6 +54,16 @@ Works with Claude Code, OpenClaw, and any MCP-compatible Agent framework.
 
 > The `config` command auto-detects the correct Node.js path to prevent native addon version mismatches (common with nvm). Even if a mismatch occurs, the system auto-rebuilds at startup.
 
+**HTTP MCP (Streamable HTTP):**
+
+`pepper-tasks start --port 3847` starts the Web UI, REST API, and HTTP MCP endpoint together:
+
+```text
+http://localhost:3847/mcp
+```
+
+Supports `POST /mcp`, `GET /mcp`, and `DELETE /mcp`, so external Streamable HTTP MCP clients can connect directly by URL.
+
 **Manual config (single Node version):**
 
 ```json
@@ -92,27 +102,32 @@ No sudo required. Runs as user-level service with auto-restart on crash.
 
 ```
 ┌──────────────────────────────────────┐
-│       Single Node.js Process          │
+│   pepper-tasks start Node.js Process  │
 │                                      │
-│  ┌──────────┐  ┌──────────────────┐  │
-│  │ MCP Server│  │ HTTP Server      │  │
-│  │ (stdio)  │  │ (REST API + SPA) │  │
-│  └────┬─────┘  └────────┬─────────┘  │
-│       │                 │            │
-│       └────────┬────────┘            │
-│                │                     │
-│         ┌──────┴──────┐              │
-│         │   SQLite    │              │
-│         │ (single file)│              │
-│         └─────────────┘              │
+│  ┌────────────────────────────────┐  │
+│  │ HTTP Server                    │  │
+│  │ REST API + SPA + HTTP MCP /mcp │  │
+│  └───────────────┬────────────────┘  │
+│                  │                   │
+│         ┌────────┴───────┐           │
+│         │   SQLite       │           │
+│         │ (single file)  │           │
+│         └────────┬───────┘           │
+└──────────────────┼───────────────────┘
+                   │
+┌──────────────────┼───────────────────┐
+│  pepper-tasks mcp Node.js Process     │
+│         ┌────────┴───────┐           │
+│         │ stdio MCP      │           │
+│         └────────────────┘           │
 └──────────────────────────────────────┘
-     ↑ stdio           ↑ HTTP
-     │                  │
-  Agent              Browser
-(OpenClaw/Claude)    (Web UI)
+     ↑ HTTP /mcp       ↑ stdio
+     │                 │
+  HTTP MCP Client    Agent
+  / Browser          (OpenClaw/Claude)
 ```
 
-Web UI and MCP run as separate processes, safely sharing the same database via SQLite WAL mode.
+`pepper-tasks start` serves the Web UI, REST API, and Streamable HTTP MCP from the same HTTP service. `pepper-tasks mcp` still provides stdio MCP, and both modes safely share the same database via SQLite WAL mode.
 
 ---
 
@@ -483,7 +498,7 @@ UI language: Traditional Chinese (i18n planned for Phase 2). Responsive layout f
 ## CLI Reference
 
 ```
-pepper-tasks start    [--port 3847]              Start Web UI
+pepper-tasks start    [--port 3847]              Start Web UI / REST API / HTTP MCP
 pepper-tasks mcp                                 Start MCP Server (stdio)
 pepper-tasks config                              Output MCP config JSON
 pepper-tasks service  [install|uninstall|status]  System service management
