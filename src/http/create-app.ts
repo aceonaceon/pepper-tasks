@@ -1,3 +1,4 @@
+import { BUILD_COMMIT, BUILD_DIRTY } from "../shared/version";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "hono";
@@ -11,7 +12,7 @@ import auditRouter from "./routes/audit";
 import { createMcpRouter } from "./routes/mcp";
 import type { HttpVariables } from "./types";
 
-export type CreateAppOptions<Bindings = Record<string, unknown>> = {
+export type CreateAppOptions<Bindings extends object = Record<string, unknown>> = {
   getRepository: (
     c: Context<{ Bindings: Bindings; Variables: HttpVariables }>
   ) => TaskRepository;
@@ -21,7 +22,7 @@ export type CreateAppOptions<Bindings = Record<string, unknown>> = {
   mcpStateless?: boolean;
 };
 
-export function createApp<Bindings = Record<string, unknown>>(
+export function createApp<Bindings extends object = Record<string, unknown>>(
   options: CreateAppOptions<Bindings>
 ) {
   type Env = { Bindings: Bindings; Variables: HttpVariables };
@@ -58,6 +59,8 @@ export function createApp<Bindings = Record<string, unknown>>(
     c.set("repo", options.getRepository(c));
     await next();
   });
+
+  app.get("/api/version", (c) => c.json({ commit: BUILD_COMMIT, dirty: BUILD_DIRTY }));
 
   app.route("/api/tasks", tasksRouter);
   app.route("/api/questions", questionsRouter);

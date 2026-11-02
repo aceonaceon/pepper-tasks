@@ -21,7 +21,7 @@ export type QuestionType =
   | "datetime"
   | "open_ended";
 
-export type QuestionStatus = "pending" | "answered" | "acknowledged";
+export type QuestionStatus = "pending" | "answered" | "acknowledged" | "obsolete";
 
 export interface Task {
   id: string;
@@ -51,6 +51,10 @@ export interface Question {
   status: QuestionStatus;
   created_at: string;
   answered_at: string | null;
+  retirement_reason: string | null;
+  retired_by: string | null;
+  retired_at: string | null;
+  replacement_question_id: string | null;
 }
 
 export interface Review {
@@ -79,7 +83,7 @@ export interface CreateTaskParams {
   quadrant?: Quadrant;
   task_type?: TaskType;
   deadline?: string;
-  parent_task_id?: string;
+  parent_task_id?: string | null;
 }
 
 export interface UpdateTaskParams {
@@ -115,7 +119,7 @@ export interface DashboardData {
   items_waiting_for_boss: Array<{
     type: "question" | "review";
     id: string;
-    task_id?: string;
+    task_id?: string | null;
     title?: string;
     waiting_since: string;
   }>;
@@ -156,3 +160,12 @@ export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   completed: ["archived"],
   archived: [],
 };
+
+export interface RetireQuestionParams {
+  question_id: string;
+  expected_task_id: string;
+  expected_description: string | null;
+  reason: string;
+  caller: string;
+  replacement_question_id?: string;
+}

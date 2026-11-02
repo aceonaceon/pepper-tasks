@@ -1,8 +1,8 @@
 import type { TaskRepository } from "../db/repository";
 import * as audit from "./audit-service";
 import { generateUUID } from "../shared/uuid";
-import { NotFoundError, ValidationError } from "../shared/errors";
-import type { Question, CreateQuestionParams } from "../shared/types";
+import { ConflictError, PermissionError, NotFoundError, ValidationError } from "../shared/errors";
+import type { Question, CreateQuestionParams, RetireQuestionParams } from "../shared/types";
 
 export async function createQuestion(
   repo: TaskRepository,
@@ -35,6 +35,10 @@ export async function createQuestion(
     status: "pending",
     created_at: now,
     answered_at: null,
+    retirement_reason: null,
+    retired_by: null,
+    retired_at: null,
+    replacement_question_id: null,
   };
 
   await repo.transaction(async (tx) => {
@@ -75,56 +79,85 @@ function normalizeOptions(options: unknown): string[] | undefined {
   throw new ValidationError("Question options must be an array of strings");
 }
 
-export async function answerQuestion(
-  repo: TaskRepository,
-  questionId: string,
-  answer: unknown,
-  caller: string
-): Promise<Question> {
+export async function answerQuestion(repo: TaskRepository, questionId: string, answer: unknown, caller: string): Promise<Question> {
   const question = await repo.getQuestionById(questionId);
   if (!question) throw new NotFoundError("Question", questionId);
-
-  if (question.status === "answered") {
-    throw new ValidationError("Question already answered");
-  }
-
+  if (question.status !== "pending") throw new ConflictError(`Question is ${question.status} and cannot be answered`);
   const answerStr = JSON.stringify(answer);
+  if (answerStr === undefined) throw new ValidationError("Answer must be JSON serializable");
   const now = new Date().toISOString();
-  const task = question.task_id ? await repo.getTaskById(question.task_id) : null;
-
-  await repo.transaction(async (tx) => {
-    await tx.updateQuestionAnswer(questionId, answerStr, now);
-    await audit.log(
-      tx,
-      question.task_id,
-      caller,
-      "question_answered",
-      null,
-      { question_id: questionId, answer }
-    );
-
-    // If task was blocked and this was a pending question, move task back to in_progress
-    if (question.task_id && task?.status === "blocked") {
-        await tx.updateTask(question.task_id, { status: "in_progress" });
-        await audit.log(
-          tx,
-          question.task_id,
-          "system",
-          "status_changed",
-          "blocked",
-          "in_progress"
-        );
-    }
-  });
-
+  const changed = await repo.answerQuestionAtomic(question, answerStr, answer, caller, now);
+  if (changed !== 1) {
+    const current = await repo.getQuestionById(questionId);
+    if (!current) throw new NotFoundError("Question", questionId);
+    throw new ConflictError(`Question is ${current.status} and cannot be answered`);
+  }
   return (await repo.getQuestionById(questionId))!;
 }
 
-export function listQuestions(repo: TaskRepository, filters: {
-  status?: string;
-  assigned_to?: string;
-  created_by?: string;
-}) {
+export async function retireQuestion(repo: TaskRepository, params: RetireQuestionParams): Promise<Question> {
+  const { question_id, expected_task_id, expected_description, reason, caller } = params;
+  if (typeof question_id !== "string" || !question_id ||
+      typeof expected_task_id !== "string" || !expected_task_id ||
+      !(expected_description === null || typeof expected_description === "string") ||
+      typeof caller !== "string" || !caller.trim()) {
+    throw new ValidationError("Exact question, task, description, and caller are required");
+  }
+  if (typeof reason !== "string" || !reason.trim() || reason.length > 1000) {
+    throw new ValidationError("Reason must be nonempty and at most 1000 characters");
+  }
+  if (params.replacement_question_id !== undefined &&
+      (typeof params.replacement_question_id !== "string" || !params.replacement_question_id)) {
+    throw new ValidationError("Invalid replacement question ID");
+  }
+  const replacementId = params.replacement_question_id ?? null;
+  const question = await repo.getQuestionById(question_id);
+  if (!question) throw new NotFoundError("Question", question_id);
+  if (question.task_id !== expected_task_id || question.description !== expected_description) {
+    throw new ConflictError("Question task or description has changed");
+  }
+  if (caller !== "boss" && caller !== question.created_by) {
+    throw new PermissionError("Only the question creator or boss may retire it");
+  }
+  const checkCurrent = (current: Question) => {
+    if (current.status === "obsolete") {
+      if (current.retirement_reason === reason && current.retired_by === caller &&
+          current.replacement_question_id === replacementId) return current;
+      throw new ConflictError("Question was retired with different metadata");
+    }
+    if (current.status !== "pending") {
+      throw new ConflictError(`Question is ${current.status} and cannot be retired`);
+    }
+    return null;
+  };
+  const replay = checkCurrent(question);
+  if (replay) return replay;
+  if (replacementId !== null) {
+    if (replacementId === question_id) throw new ValidationError("Question cannot replace itself");
+    const replacement = await repo.getQuestionById(replacementId);
+    if (!replacement || replacement.status !== "pending" ||
+        replacement.task_id !== question.task_id || replacement.created_by !== question.created_by ||
+        replacement.assigned_to !== question.assigned_to) {
+      throw new ConflictError("Replacement must be pending with the same task, creator, and assignee");
+    }
+  }
+  const retiredAt = new Date().toISOString();
+  const changed = await repo.retireQuestionAtomic(question, params, retiredAt);
+  const current = await repo.getQuestionById(question_id);
+  if (!current) throw new NotFoundError("Question", question_id);
+  if (changed === 1) return current;
+  if (current.task_id !== expected_task_id || current.description !== expected_description) {
+    throw new ConflictError("Question task or description has changed");
+  }
+  if (caller !== "boss" && caller !== current.created_by) {
+    throw new PermissionError("Only the question creator or boss may retire it");
+  }
+  const concurrentReplay = checkCurrent(current);
+  if (concurrentReplay) return concurrentReplay;
+  throw new ConflictError("Question or replacement changed before retirement");
+}
+
+export function listQuestions(repo: TaskRepository, filters: import("../db/repository").QuestionFilters) {
   return repo.listQuestions(filters);
 }
 

@@ -1,10 +1,11 @@
+import { registerLegacyTool } from "../registration";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { TaskRepository } from "../../db/repository";
 import * as reviewService from "../../core/review-service";
 
 export function registerReviewTools(server: McpServer, repo: TaskRepository): void {
-  server.tool(
+  registerLegacyTool(server,
     "review_list",
     "查詢待覆核任務",
     {
@@ -20,7 +21,7 @@ export function registerReviewTools(server: McpServer, repo: TaskRepository): vo
     }
   );
 
-  server.tool(
+  registerLegacyTool(server,
     "review_get",
     "取得覆核結果 + Feedback",
     {
@@ -36,7 +37,7 @@ export function registerReviewTools(server: McpServer, repo: TaskRepository): vo
     }
   );
 
-  server.tool(
+  registerLegacyTool(server,
     "feedback_history",
     "查詢歷史 Feedback（用於學習老闆偏好）",
     {

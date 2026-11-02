@@ -61,6 +61,18 @@ class MemoryRepository implements TaskRepository {
     });
   }
 
+  async retireQuestionAtomic(): Promise<number> { throw new Error("Not exercised by this fixture"); }
+
+  async answerQuestionAtomic(question: Question, answer: string, answerValue: unknown, caller: string, at: string): Promise<number> {
+    await this.updateQuestionAnswer(question.id, answer, at);
+    this.auditLogs.push({ id: "answer-audit", task_id: question.task_id, actor: caller, action: "question_answered", old_value: null, new_value: JSON.stringify({ question_id: question.id, answer: answerValue }), timestamp: at });
+    if (question.task_id && this.tasks.get(question.task_id)?.status === "blocked") {
+      await this.updateTask(question.task_id, { status: "in_progress" });
+      this.auditLogs.push({ id: "status-audit", task_id: question.task_id, actor: "system", action: "status_changed", old_value: '"blocked"', new_value: '"in_progress"', timestamp: at });
+    }
+    return 1;
+  }
+
   async updateQuestionStatus(id: string, status: string): Promise<void> {
     const question = this.questions.get(id);
     if (!question) return;

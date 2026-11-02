@@ -95,7 +95,7 @@ export async function updateTask(
       const oldValues: Record<string, unknown> = {};
       const newValues: Record<string, unknown> = {};
       for (const key of changedFields) {
-        oldValues[key] = (task as Record<string, unknown>)[key];
+        oldValues[key] = task[key as keyof typeof task];
         newValues[key] = updateFields[key];
       }
       await audit.log(tx, taskId, caller, "updated", oldValues, newValues);

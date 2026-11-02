@@ -46,9 +46,13 @@ export interface Question {
   description: string | null;
   options: string | null;
   answer: string | null;
-  status: "pending" | "answered";
+  status: "pending" | "answered" | "acknowledged" | "obsolete";
   created_at: string;
   answered_at: string | null;
+  retirement_reason: string | null;
+  retired_by: string | null;
+  retired_at: string | null;
+  replacement_question_id: string | null;
 }
 
 export interface Review {
@@ -85,7 +89,7 @@ export interface DashboardData {
   items_waiting_for_boss: Array<{
     type: "question" | "review";
     id: string;
-    task_id?: string;
+    task_id?: string | null;
     title?: string;
     waiting_since: string;
   }>;

@@ -229,7 +229,7 @@ export function getMostUrgentTask(): {
 export function getItemsWaitingForBoss(): Array<{
   type: string;
   id: string;
-  task_id?: string;
+  task_id?: string | null;
   title?: string;
   waiting_since: string;
 }> {

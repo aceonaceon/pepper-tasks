@@ -1,9 +1,15 @@
 node_modules/
 dist/
 web/dist/
-web/node_modules/
+web/node_modules
 tmp/
 .DS_Store
 *.db
 *.db-wal
 *.db-shm
+
+.test-build/
+.test-artifacts/
+.test-tmp/
+.test-state/
+/tsup.config.bundled_*

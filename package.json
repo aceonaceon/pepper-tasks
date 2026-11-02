@@ -14,7 +14,7 @@
     "build": "rm -rf dist web/dist && tsup && cd web && npm run build && cd .. && mkdir -p dist/public && cp -R web/dist/. dist/public/",
     "build:worker": "tsup --config tsup.config.ts --env.NODE_ENV production && rm -rf web/dist && cd web && npm run build && cd .. && rm -rf dist/public && mkdir -p dist/public && cp -R web/dist/. dist/public/",
     "build:server": "tsup",
-    "test": "npx --yes vitest@4.1.9 run",
+    "test": "node scripts/test-all.mjs",
     "start": "node dist/cli.js start",
     "dev": "tsup --watch",
     "dev:web": "cd web && npm run dev",
@@ -23,7 +23,9 @@
     "cf:migrate": "npx --yes wrangler@4.101.0 d1 migrations apply agent-task-board --remote",
     "cf:import": "npx --yes wrangler@4.101.0 d1 execute agent-task-board --remote --file=tmp/pepper-tasks-d1-import.sql",
     "cf:deploy": "npm run build:worker && npx --yes wrangler@4.101.0 deploy",
-    "cf:types": "npx --yes wrangler@4.101.0 types"
+    "cf:types": "npx --yes wrangler@4.101.0 types",
+    "test:retirement": "node scripts/test-retirement.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",

@@ -1,3 +1,4 @@
+import { registerLegacyTool } from "../registration";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { TaskRepository } from "../../db/repository";
@@ -5,7 +6,7 @@ import * as dashboardService from "../../core/dashboard-service";
 import * as audit from "../../core/audit-service";
 
 export function registerSystemTools(server: McpServer, repo: TaskRepository): void {
-  server.tool(
+  registerLegacyTool(server,
     "dashboard",
     "全貌概覽 + 行動清單。回傳 action_items 已按優先級排序（1=已回覆問題 2=被退回任務 3=孤兒任務 4=進行中 5=待處理），Agent 每次 session 開始呼叫一次，從頭到尾依序處理 action_items 即可。",
     {
@@ -21,7 +22,7 @@ export function registerSystemTools(server: McpServer, repo: TaskRepository): vo
     }
   );
 
-  server.tool(
+  registerLegacyTool(server,
     "dashboard_lite",
     "輕量行動清單（≤24h 新事件）。適合 session 中段 heartbeat，不會載入完整歷史。session 開始請用 dashboard()。",
     {
@@ -37,7 +38,7 @@ export function registerSystemTools(server: McpServer, repo: TaskRepository): vo
     }
   );
 
-  server.tool(
+  registerLegacyTool(server,
     "audit_log",
     "任務歷史變更紀錄",
     {

@@ -5,11 +5,13 @@ import type { HttpEnv } from "../types";
 const app = new Hono<HttpEnv>();
 
 app.get("/", async (c) => {
-  const { status, assigned_to, created_by } = c.req.query();
+  const { status, assigned_to, created_by, task_id, question_id } = c.req.query();
   const questions = await questionService.listQuestions(c.get("repo"), {
     status,
     assigned_to,
     created_by,
+    task_id,
+    question_id,
   });
   return c.json(questions);
 });
@@ -38,6 +40,9 @@ app.post("/", async (c) => {
 app.put("/:id/answer", async (c) => {
   try {
     const body = await c.req.json();
+    if (!body || typeof body !== "object" || Array.isArray(body) || !Object.hasOwn(body, "answer")) {
+      return c.json({ error: "Answer is required" }, 400);
+    }
     const question = await questionService.answerQuestion(
       c.get("repo"),
       c.req.param("id"),
@@ -46,8 +51,34 @@ app.put("/:id/answer", async (c) => {
     );
     return c.json(question);
   } catch (err: any) {
+    if (err instanceof SyntaxError) return c.json({ error: "Malformed JSON" }, 400);
     if (err.name === "NotFoundError") return c.json({ error: err.message }, 404);
     if (err.name === "ValidationError") return c.json({ error: err.message }, 400);
+    if (err.name === "ConflictError") return c.json({ error: err.message }, 409);
+    return c.json({ error: err.message }, 500);
+  }
+});
+app.post("/:id/retire", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return c.json({ error: "JSON object required" }, 400);
+    }
+    const question = await questionService.retireQuestion(c.get("repo"), {
+      question_id: c.req.param("id"),
+      expected_task_id: body.expected_task_id,
+      expected_description: body.expected_description,
+      reason: body.reason,
+      replacement_question_id: body.replacement_question_id,
+      caller: "boss"
+    });
+    return c.json(question);
+  } catch (err: any) {
+    if (err instanceof SyntaxError) return c.json({ error: "Malformed JSON" }, 400);
+    if (err.name === "NotFoundError") return c.json({ error: err.message }, 404);
+    if (err.name === "ValidationError") return c.json({ error: err.message }, 400);
+    if (err.name === "PermissionError") return c.json({ error: err.message }, 403);
+    if (err.name === "ConflictError") return c.json({ error: err.message }, 409);
     return c.json({ error: err.message }, 500);
   }
 });

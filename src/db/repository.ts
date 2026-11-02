@@ -1,4 +1,4 @@
-import type { AuditLog, Question, Review, Task } from "../shared/types";
+import type { AuditLog, Question, Review, Task, RetireQuestionParams } from "../shared/types";
 
 export type TaskFilters = {
   status?: string;
@@ -10,6 +10,7 @@ export type TaskFilters = {
 };
 
 export type QuestionFilters = {
+  question_id?: string;
   status?: string;
   assigned_to?: string;
   created_by?: string;
@@ -17,7 +18,7 @@ export type QuestionFilters = {
 };
 
 export type WaitingItem = {
-  type: string;
+  type: "question" | "review";
   id: string;
   task_id?: string | null;
   title?: string;
@@ -59,6 +60,8 @@ export interface TaskRepository {
   deleteTask(id: string): Promise<void>;
 
   insertQuestion(question: Question): Promise<void>;
+  retireQuestionAtomic(question: Question, params: RetireQuestionParams, retiredAt: string): Promise<number>;
+  answerQuestionAtomic(question: Question, answer: string, answerValue: unknown, caller: string, answeredAt: string): Promise<number>;
   updateQuestionAnswer(id: string, answer: string, answeredAt: string): Promise<void>;
   updateQuestionStatus(id: string, status: string): Promise<void>;
   getQuestionById(id: string): Promise<Question | undefined>;

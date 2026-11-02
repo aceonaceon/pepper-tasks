@@ -1,3 +1,4 @@
+import { generateUUID } from "../shared/uuid";
 import type {
   ActionItem,
   OrphanTask,
@@ -7,7 +8,7 @@ import type {
   UrgentTask,
   WaitingItem,
 } from "./repository";
-import type { AuditLog, Question, Review, Task } from "../shared/types";
+import type { AuditLog, Question, Review, Task, RetireQuestionParams } from "../shared/types";
 
 type SqlValue = string | number | boolean | null;
 
@@ -31,11 +32,19 @@ const TASK_FILTER_COLUMNS = new Set([
 ]);
 
 const QUESTION_FILTER_COLUMNS = new Set([
+  "question_id",
   "status",
   "assigned_to",
   "created_by",
   "task_id",
 ]);
+
+const questionRead = `SELECT q.id, q.task_id, q.created_by, q.assigned_to,
+  q.question_type, q.question_text, q.description, q.options, q.answer,
+  CASE WHEN r.question_id IS NOT NULL THEN 'obsolete' ELSE q.status END AS status,
+  q.created_at, q.answered_at, r.retirement_reason, r.retired_by,
+  r.retired_at, r.replacement_question_id
+  FROM questions q LEFT JOIN question_retirements r ON r.question_id = q.id`;
 
 export class D1TaskRepository implements TaskRepository {
   constructor(
@@ -137,18 +146,69 @@ export class D1TaskRepository implements TaskRepository {
     );
   }
 
+  async retireQuestionAtomic(question: Question, params: RetireQuestionParams, retiredAt: string): Promise<number> {
+    const replacementId = params.replacement_question_id ?? null;
+    const insert = this.statement(`INSERT INTO question_retirements
+      (question_id, retirement_reason, retired_by, retired_at, replacement_question_id)
+      SELECT q.id, ?, ?, ?, ? FROM questions q
+      WHERE q.id = ? AND q.status = 'pending' AND q.task_id = ?
+      AND q.description IS ? AND (q.created_by = ? OR ? = 'boss')
+      AND NOT EXISTS (SELECT 1 FROM question_retirements r WHERE r.question_id = q.id)
+      AND (? IS NULL OR EXISTS (
+        SELECT 1 FROM questions replacement
+        WHERE replacement.id = ? AND replacement.id <> q.id
+        AND replacement.status = 'pending' AND replacement.task_id = q.task_id
+        AND replacement.created_by = q.created_by AND replacement.assigned_to = q.assigned_to
+        AND NOT EXISTS (SELECT 1 FROM question_retirements rr WHERE rr.question_id = replacement.id)
+      ))`, [params.reason, params.caller, retiredAt, replacementId, params.question_id,
+      params.expected_task_id, params.expected_description, params.caller, params.caller,
+      replacementId, replacementId]);
+    const oldValue = JSON.stringify({ question_id: question.id, status: 'pending' });
+    const newValue = JSON.stringify({ question_id: question.id, status: 'obsolete', retirement_reason: params.reason,
+      retired_by: params.caller, retired_at: retiredAt, replacement_question_id: replacementId });
+    const audit = this.statement(`INSERT INTO audit_logs (id, task_id, actor, action, old_value, new_value, timestamp)
+      SELECT ?, ?, ?, 'question_retired', ?, ?, ? WHERE changes() = 1`,
+    [generateUUID(), question.task_id, params.caller, oldValue, newValue, retiredAt]);
+    const results = await this.db.batch([insert, audit]);
+    return Number(results[0].meta?.changes ?? 0);
+  }
+
+  async answerQuestionAtomic(question: Question, answer: string, answerValue: unknown, caller: string, answeredAt: string): Promise<number> {
+    const update = this.statement(`UPDATE questions SET answer = ?, status = 'answered', answered_at = ?
+      WHERE id = ? AND status = 'pending'
+      AND task_id IS ?
+      AND NOT EXISTS (SELECT 1 FROM question_retirements WHERE question_id = ?)`,
+    [answer, answeredAt, question.id, question.task_id, question.id]);
+    const answerAudit = this.statement(`INSERT INTO audit_logs (id, task_id, actor, action, old_value, new_value, timestamp)
+      SELECT ?, ?, ?, 'question_answered', NULL, ?, ? WHERE changes() = 1`,
+    [generateUUID(), question.task_id, caller, JSON.stringify({ question_id: question.id, answer: answerValue }), answeredAt]);
+    const statements = [update, answerAudit];
+    if (question.task_id) {
+      statements.push(this.statement(`UPDATE tasks SET status = 'in_progress', updated_at = datetime('now')
+        WHERE id = ? AND status = 'blocked' AND changes() = 1 AND EXISTS (
+          SELECT 1 FROM questions q WHERE q.id = ? AND q.task_id = tasks.id
+          AND q.status = 'answered' AND q.answered_at = ? AND q.answer = ?
+        )`, [question.task_id, question.id, answeredAt, answer]));
+      statements.push(this.statement(`INSERT INTO audit_logs (id, task_id, actor, action, old_value, new_value, timestamp)
+        SELECT ?, ?, 'system', 'status_changed', '"blocked"', '"in_progress"', ? WHERE changes() = 1`,
+      [generateUUID(), question.task_id, answeredAt]));
+    }
+    const results = await this.db.batch(statements);
+    return Number(results[0].meta?.changes ?? 0);
+  }
+
   async updateQuestionStatus(id: string, status: string): Promise<void> {
     await this.run("UPDATE questions SET status = ? WHERE id = ?", [status, id]);
   }
 
   async getQuestionById(id: string): Promise<Question | undefined> {
-    return (await this.first<Question>("SELECT * FROM questions WHERE id = ?", [id])) || undefined;
+    return (await this.first<Question>(`${questionRead} WHERE q.id = ?`, [id])) || undefined;
   }
 
   async listQuestions(filters: QuestionFilters): Promise<Question[]> {
     const { where, params } = buildQuestionWhere(filters);
     return this.all<Question>(
-      `SELECT * FROM questions ${where} ORDER BY created_at DESC`,
+      `${questionRead} ${where} ORDER BY q.created_at DESC`,
       params
     );
   }
@@ -220,7 +280,7 @@ export class D1TaskRepository implements TaskRepository {
 
   async countUnansweredQuestions(): Promise<number> {
     const row = await this.first<{ count: number }>(
-      "SELECT COUNT(*) as count FROM questions WHERE status = 'pending'"
+      "SELECT COUNT(*) as count FROM questions q WHERE q.status = 'pending' AND NOT EXISTS (SELECT 1 FROM question_retirements r WHERE r.question_id = q.id)"
     );
     return row?.count ?? 0;
   }
@@ -244,6 +304,7 @@ export class D1TaskRepository implements TaskRepository {
     const questions = await this.all<WaitingItem>(
       `SELECT 'question' as type, q.id, q.task_id, q.question_text as title, q.created_at as waiting_since
        FROM questions q WHERE q.status = 'pending' AND q.assigned_to = 'boss'
+          AND NOT EXISTS (SELECT 1 FROM question_retirements r WHERE r.question_id = q.id)
        ORDER BY q.created_at ASC`
     );
     const reviews = await this.all<WaitingItem>(
@@ -262,7 +323,8 @@ export class D1TaskRepository implements TaskRepository {
        FROM tasks t
        WHERE t.status IN ('pending', 'in_progress', 'blocked')
        AND t.id NOT IN (
-         SELECT DISTINCT task_id FROM questions WHERE task_id IS NOT NULL AND status = 'pending'
+         SELECT DISTINCT q.task_id FROM questions q WHERE q.task_id IS NOT NULL AND q.status = 'pending'
+            AND NOT EXISTS (SELECT 1 FROM question_retirements r WHERE r.question_id = q.id)
        )
        ORDER BY t.updated_at ASC`
     );
@@ -332,7 +394,8 @@ export class D1TaskRepository implements TaskRepository {
        FROM tasks t
        WHERE t.status IN ('pending', 'in_progress', 'blocked')
        AND t.id NOT IN (
-         SELECT DISTINCT task_id FROM questions WHERE task_id IS NOT NULL AND status = 'pending'
+         SELECT DISTINCT q.task_id FROM questions q WHERE q.task_id IS NOT NULL AND q.status = 'pending'
+            AND NOT EXISTS (SELECT 1 FROM question_retirements r WHERE r.question_id = q.id)
        )
        ${agentId ? "AND t.assigned_to = ?" : ""}
        ORDER BY t.updated_at ASC`;
@@ -345,7 +408,8 @@ export class D1TaskRepository implements TaskRepository {
            FROM tasks t
            WHERE t.status = 'in_progress' AND t.assigned_to = ?
            AND t.id IN (
-             SELECT DISTINCT task_id FROM questions WHERE task_id IS NOT NULL AND status = 'pending'
+             SELECT DISTINCT q.task_id FROM questions q WHERE q.task_id IS NOT NULL AND q.status = 'pending'
+            AND NOT EXISTS (SELECT 1 FROM question_retirements r WHERE r.question_id = q.id)
            )
            ORDER BY t.updated_at ASC`,
           [agentId]
@@ -454,7 +518,7 @@ function buildQuestionWhere(filters: QuestionFilters): { where: string; params: 
 
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && QUESTION_FILTER_COLUMNS.has(key)) {
-      conditions.push(`${key} = ?`);
+      conditions.push(key === "status" ? "(CASE WHEN r.question_id IS NOT NULL THEN 'obsolete' ELSE q.status END) = ?" : `${key === "question_id" ? "q.id" : `q.${key}`} = ?`);
       params.push(value);
     }
   }

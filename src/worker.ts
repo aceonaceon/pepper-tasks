@@ -18,7 +18,7 @@ const app = createApp<Env>({
 });
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request: Request, env: Env, ctx: Parameters<typeof app.fetch>[2]) {
     const adminResponse = await handleAdminImport(request, env);
     if (adminResponse) return adminResponse;
 

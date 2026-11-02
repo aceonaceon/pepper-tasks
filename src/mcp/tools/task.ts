@@ -1,10 +1,11 @@
+import { registerLegacyTool } from "../registration";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { TaskRepository } from "../../db/repository";
 import * as taskService from "../../core/task-service";
 
 export function registerTaskTools(server: McpServer, repo: TaskRepository): void {
-  server.tool(
+  registerLegacyTool(server,
     "task_create",
     "建立新任務",
     {
@@ -50,7 +51,7 @@ export function registerTaskTools(server: McpServer, repo: TaskRepository): void
     }
   );
 
-  server.tool(
+  registerLegacyTool(server,
     "task_update",
     "更新任務（受權限控制）",
     {
@@ -85,7 +86,7 @@ export function registerTaskTools(server: McpServer, repo: TaskRepository): void
     }
   );
 
-  server.tool(
+  registerLegacyTool(server,
     "task_list",
     "查詢任務列表（支援關鍵字搜尋，建議建立任務前先查重）",
     {
@@ -105,7 +106,7 @@ export function registerTaskTools(server: McpServer, repo: TaskRepository): void
     }
   );
 
-  server.tool(
+  registerLegacyTool(server,
     "task_get",
     "取得單一任務詳情 + 時間軸",
     {

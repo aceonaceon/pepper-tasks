@@ -101,9 +101,16 @@ export default function TaskDetailPage() {
                     <Markdown>{q.description}</Markdown>
                   </div>
                 )}
-                <span className={`text-[11px] font-medium ${q.status === "answered" ? "text-emerald-600" : "text-amber-600"}`}>
-                  {q.status === "answered" ? `✓ 已回答：${q.answer}` : "⏳ 等待回覆中..."}
-                </span>
+                {q.status === "obsolete" ? (
+                  <div className="text-[11px] text-stone-600">
+                    <strong>已作廢</strong>：{q.retirement_reason}
+                    {q.replacement_question_id && <p>替代問題：{q.replacement_question_id}</p>}
+                  </div>
+                ) : (
+                  <span className={`text-[11px] font-medium ${q.status === "answered" || q.status === "acknowledged" ? "text-emerald-600" : "text-amber-600"}`}>
+                    {q.status === "answered" || q.status === "acknowledged" ? `✓ 已回答：${q.answer}` : "⏳ 等待回覆中..."}
+                  </span>
+                )}
               </div>
             ))}
           </div>

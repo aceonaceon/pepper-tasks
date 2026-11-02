@@ -97,6 +97,18 @@ export function initializeSchema(db: Database.Database): void {
   } catch {}
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS question_retirements (
+      question_id TEXT PRIMARY KEY REFERENCES questions(id),
+      retirement_reason TEXT NOT NULL,
+      retired_by TEXT NOT NULL,
+      retired_at TEXT NOT NULL,
+      replacement_question_id TEXT REFERENCES questions(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_question_retirements_replacement
+      ON question_retirements(replacement_question_id);
+  `);
+
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_to);
     CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);

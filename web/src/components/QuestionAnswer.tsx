@@ -11,9 +11,22 @@ interface Props {
 }
 
 export default function QuestionAnswer({ question, onAnswered }: Props) {
+  if (question.status !== "pending") {
+    return question.status === "obsolete" ? (
+      <div className="text-sm text-stone-600" role="status">
+        <strong>已作廢</strong>：{question.retirement_reason}
+        {question.replacement_question_id && <p>替代問題：{question.replacement_question_id}</p>}
+      </div>
+    ) : null;
+  }
+  return <PendingQuestionAnswer question={question} onAnswered={onAnswered} />;
+}
+
+function PendingQuestionAnswer({ question, onAnswered }: Props) {
   const [value, setValue] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionHint, setActionHint] = useState<ActionHint>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const wrapAnswer = (answer: unknown) => {
     if (!actionHint) return answer;
@@ -26,10 +39,13 @@ export default function QuestionAnswer({ question, onAnswered }: Props) {
 
   const submit = async (answer: unknown) => {
     setSubmitting(true);
+    setError(null);
     try {
       await answerQuestion(question.id, wrapAnswer(answer));
       onAnswered();
-    } catch {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "無法送出回答");
+      onAnswered();
     } finally {
       setSubmitting(false);
     }
@@ -143,6 +159,7 @@ export default function QuestionAnswer({ question, onAnswered }: Props) {
 
   return (
     <div className="space-y-3">
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       {answerUI}
       <ActionHintSelector value={actionHint} onChange={setActionHint} />
       <RevisionSection
