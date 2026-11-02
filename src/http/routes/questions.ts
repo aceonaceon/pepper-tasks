@@ -1,17 +1,22 @@
 import { Hono } from "hono";
 import * as questionService from "../../core/question-service";
+import type { HttpEnv } from "../types";
 
-const app = new Hono();
+const app = new Hono<HttpEnv>();
 
-app.get("/", (c) => {
+app.get("/", async (c) => {
   const { status, assigned_to, created_by } = c.req.query();
-  const questions = questionService.listQuestions({ status, assigned_to, created_by });
+  const questions = await questionService.listQuestions(c.get("repo"), {
+    status,
+    assigned_to,
+    created_by,
+  });
   return c.json(questions);
 });
 
-app.get("/:id", (c) => {
+app.get("/:id", async (c) => {
   try {
-    const question = questionService.getAnswer(c.req.param("id"));
+    const question = await questionService.getAnswer(c.get("repo"), c.req.param("id"));
     return c.json(question);
   } catch (err: any) {
     if (err.name === "NotFoundError") return c.json({ error: err.message }, 404);
@@ -22,7 +27,7 @@ app.get("/:id", (c) => {
 app.post("/", async (c) => {
   try {
     const body = await c.req.json();
-    const question = questionService.createQuestion(body, "boss");
+    const question = await questionService.createQuestion(c.get("repo"), body, "boss");
     return c.json(question, 201);
   } catch (err: any) {
     if (err.name === "ValidationError") return c.json({ error: err.message }, 400);
@@ -33,7 +38,8 @@ app.post("/", async (c) => {
 app.put("/:id/answer", async (c) => {
   try {
     const body = await c.req.json();
-    const question = questionService.answerQuestion(
+    const question = await questionService.answerQuestion(
+      c.get("repo"),
       c.req.param("id"),
       body.answer,
       "boss"

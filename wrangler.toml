@@ -1,0 +1,20 @@
+name = "agent-task-board"
+main = "dist/worker.mjs"
+compatibility_date = "2026-06-17"
+workers_dev = false
+
+routes = [
+  { pattern = "todo.aceonhuang.com", custom_domain = true }
+]
+
+[assets]
+directory = "./web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "agent-task-board"
+database_id = "a285478b-ff52-4028-8ce8-8b73a0a02d33"
+migrations_dir = "migrations"

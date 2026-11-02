@@ -1,14 +1,15 @@
-import * as queries from "../db/queries";
+import type { TaskRepository } from "../db/repository";
 import { generateUUID } from "../shared/uuid";
 
-export function log(
+export async function log(
+  repo: TaskRepository,
   taskId: string | null,
   actor: string,
   action: string,
   oldValue?: unknown,
   newValue?: unknown
-): void {
-  queries.insertAuditLog({
+): Promise<void> {
+  await repo.insertAuditLog({
     id: generateUUID(),
     task_id: taskId,
     actor,
@@ -19,6 +20,6 @@ export function log(
   });
 }
 
-export function getLog(taskId: string) {
-  return queries.getAuditLogsByTaskId(taskId);
+export function getLog(repo: TaskRepository, taskId: string) {
+  return repo.getAuditLogsByTaskId(taskId);
 }

@@ -1,19 +1,19 @@
-import { getDb } from "../db/connection";
-import * as queries from "../db/queries";
+import type { TaskRepository } from "../db/repository";
 import * as audit from "./audit-service";
-import * as taskService from "./task-service";
 import { generateUUID } from "../shared/uuid";
 import { NotFoundError } from "../shared/errors";
 import type { Review } from "../shared/types";
 
-export function submitReview(
+export async function submitReview(
+  repo: TaskRepository,
   taskId: string,
   approved: boolean,
   comment: string,
   reviewer: string
-): Review {
-  const task = queries.getTaskById(taskId);
+): Promise<Review> {
+  const task = await repo.getTaskById(taskId);
   if (!task) throw new NotFoundError("Task", taskId);
+  const subTasks = approved ? await repo.getSubTasks(taskId) : [];
 
   const now = new Date().toISOString();
   const review: Review = {
@@ -25,52 +25,53 @@ export function submitReview(
     created_at: now,
   };
 
-  const db = getDb();
-  const tx = db.transaction(() => {
-    queries.insertReview(review);
+  await repo.transaction(async (tx) => {
+    await tx.insertReview(review);
 
     if (approved) {
-      queries.updateTask(taskId, { status: "completed" });
-      audit.log(taskId, reviewer, "reviewed", null, {
+      await tx.updateTask(taskId, { status: "completed" });
+      await audit.log(tx, taskId, reviewer, "reviewed", null, {
         approved: true,
         comment,
       });
-      audit.log(taskId, reviewer, "status_changed", "review", "completed");
+      await audit.log(tx, taskId, reviewer, "status_changed", "review", "completed");
 
       // Auto-archive any orphaned sub-tasks
-      const subTasks = queries.getSubTasks(taskId);
       for (const sub of subTasks) {
         if (!["completed", "archived"].includes(sub.status)) {
-          queries.updateTask(sub.id, { status: "archived" });
-          audit.log(sub.id, "system", "status_changed", sub.status, "archived");
+          await tx.updateTask(sub.id, { status: "archived" });
+          await audit.log(tx, sub.id, "system", "status_changed", sub.status, "archived");
         }
       }
     } else {
-      queries.updateTask(taskId, { status: "in_progress" });
-      audit.log(taskId, reviewer, "reviewed", null, {
+      await tx.updateTask(taskId, { status: "in_progress" });
+      await audit.log(tx, taskId, reviewer, "reviewed", null, {
         approved: false,
         comment,
       });
-      audit.log(taskId, reviewer, "status_changed", "review", "in_progress");
+      await audit.log(tx, taskId, reviewer, "status_changed", "review", "in_progress");
       // No auto-created [修正] sub-task — Agent reads the feedback via
       // review_get / feedback_history and decides how to proceed.
     }
   });
-  tx();
 
   return review;
 }
 
-export function getReview(taskId: string) {
-  const reviews = queries.getReviewsByTaskId(taskId);
+export async function getReview(repo: TaskRepository, taskId: string) {
+  const reviews = await repo.getReviewsByTaskId(taskId);
   if (reviews.length === 0) return null;
   return reviews[0]; // latest
 }
 
-export function listPendingReviews(agentId?: string) {
-  return queries.getTasksInReview(agentId);
+export function listPendingReviews(repo: TaskRepository, agentId?: string) {
+  return repo.getTasksInReview(agentId);
 }
 
-export function feedbackHistory(agentId?: string, limit: number = 20) {
-  return queries.getFeedbackHistory(agentId, limit);
+export function feedbackHistory(
+  repo: TaskRepository,
+  agentId?: string,
+  limit: number = 20
+) {
+  return repo.getFeedbackHistory(agentId, limit);
 }

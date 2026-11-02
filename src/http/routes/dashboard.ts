@@ -1,17 +1,18 @@
 import { Hono } from "hono";
 import * as dashboardService from "../../core/dashboard-service";
+import type { HttpEnv } from "../types";
 
-const app = new Hono();
+const app = new Hono<HttpEnv>();
 
-app.get("/", (c) => {
+app.get("/", async (c) => {
   const { agent_id } = c.req.query();
-  const data = dashboardService.getDashboard(agent_id);
+  const data = await dashboardService.getDashboard(c.get("repo"), agent_id);
   return c.json(data);
 });
 
-app.get("/lite", (c) => {
+app.get("/lite", async (c) => {
   const { agent_id } = c.req.query();
-  const data = dashboardService.getDashboardLite(agent_id);
+  const data = await dashboardService.getDashboardLite(c.get("repo"), agent_id);
   return c.json(data);
 });
 

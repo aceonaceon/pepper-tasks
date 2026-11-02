@@ -1,5 +1,4 @@
-import { getDb } from "../db/connection";
-import * as queries from "../db/queries";
+import type { TaskRepository } from "../db/repository";
 import * as audit from "./audit-service";
 import { generateUUID } from "../shared/uuid";
 import {
@@ -15,7 +14,11 @@ import type {
 } from "../shared/types";
 import { VALID_TRANSITIONS } from "../shared/types";
 
-export function createTask(params: CreateTaskParams, caller: string): Task {
+export async function createTask(
+  repo: TaskRepository,
+  params: CreateTaskParams,
+  caller: string
+): Promise<Task> {
   const now = new Date().toISOString();
   const task: Task = {
     id: generateUUID(),
@@ -32,22 +35,21 @@ export function createTask(params: CreateTaskParams, caller: string): Task {
     updated_at: now,
   };
 
-  const db = getDb();
-  const tx = db.transaction(() => {
-    queries.insertTask(task);
-    audit.log(task.id, caller, "created", null, task);
+  await repo.transaction(async (tx) => {
+    await tx.insertTask(task);
+    await audit.log(tx, task.id, caller, "created", null, task);
   });
-  tx();
 
   return task;
 }
 
-export function updateTask(
+export async function updateTask(
+  repo: TaskRepository,
   taskId: string,
   updates: UpdateTaskParams,
   caller: string
-): Task {
-  const task = queries.getTaskById(taskId);
+): Promise<Task> {
+  const task = await repo.getTaskById(taskId);
   if (!task) throw new NotFoundError("Task", taskId);
 
   assertCanUpdate(task, caller, updates);
@@ -57,7 +59,7 @@ export function updateTask(
 
     // blocked requires at least one pending question for this task
     if (updates.status === "blocked") {
-      const pendingQs = queries.listQuestions({ task_id: taskId, status: "pending" });
+      const pendingQs = await repo.listQuestions({ task_id: taskId, status: "pending" });
       if (pendingQs.length === 0) {
         throw new ValidationError(
           "Cannot set status to 'blocked' without a pending question. " +
@@ -78,15 +80,14 @@ export function updateTask(
     return task;
   }
 
-  const db = getDb();
-  const tx = db.transaction(() => {
-    queries.updateTask(taskId, updateFields);
+  await repo.transaction(async (tx) => {
+    await tx.updateTask(taskId, updateFields);
 
     if (updates.status && updates.status !== task.status) {
-      audit.log(taskId, caller, "status_changed", task.status, updates.status);
+      await audit.log(tx, taskId, caller, "status_changed", task.status, updates.status);
       // Auto-acknowledge all answered questions for this task
       // so they disappear from action_items without Agent needing question_get_answer
-      queries.acknowledgeAnsweredQuestions(taskId);
+      await tx.acknowledgeAnsweredQuestions(taskId);
     }
 
     const changedFields = Object.keys(updateFields).filter((k) => k !== "status");
@@ -97,38 +98,41 @@ export function updateTask(
         oldValues[key] = (task as Record<string, unknown>)[key];
         newValues[key] = updateFields[key];
       }
-      audit.log(taskId, caller, "updated", oldValues, newValues);
+      await audit.log(tx, taskId, caller, "updated", oldValues, newValues);
     }
   });
-  tx();
 
-  return queries.getTaskById(taskId)!;
+  return (await repo.getTaskById(taskId))!;
 }
 
-export function getTask(taskId: string) {
-  const task = queries.getTaskById(taskId);
+export async function getTask(repo: TaskRepository, taskId: string) {
+  const task = await repo.getTaskById(taskId);
   if (!task) throw new NotFoundError("Task", taskId);
 
-  const subTasks = queries.getSubTasks(taskId);
-  const questions = queries.listQuestions({ task_id: taskId });
-  const reviews = queries.getReviewsByTaskId(taskId);
-  const auditLogs = queries.getAuditLogsByTaskId(taskId);
+  const subTasks = await repo.getSubTasks(taskId);
+  const questions = await repo.listQuestions({ task_id: taskId });
+  const reviews = await repo.getReviewsByTaskId(taskId);
+  const auditLogs = await repo.getAuditLogsByTaskId(taskId);
 
   return { task, subTasks, questions, reviews, auditLogs };
 }
 
-export function listTasks(filters: {
+export function listTasks(repo: TaskRepository, filters: {
   status?: string;
   assigned_to?: string;
   created_by?: string;
   quadrant?: string;
   search?: string;
 }) {
-  return queries.listTasks(filters);
+  return repo.listTasks(filters);
 }
 
-export function deleteTask(taskId: string, caller: string): void {
-  const task = queries.getTaskById(taskId);
+export async function deleteTask(
+  repo: TaskRepository,
+  taskId: string,
+  caller: string
+): Promise<void> {
+  const task = await repo.getTaskById(taskId);
   if (!task) throw new NotFoundError("Task", taskId);
 
   if (task.created_by === "boss" && caller !== "boss") {
@@ -138,12 +142,10 @@ export function deleteTask(taskId: string, caller: string): void {
     throw new PermissionError("Cannot delete tasks created by another agent");
   }
 
-  const db = getDb();
-  const tx = db.transaction(() => {
-    queries.deleteTask(taskId);
-    audit.log(taskId, caller, "deleted", task, null);
+  await repo.transaction(async (tx) => {
+    await tx.deleteTask(taskId);
+    await audit.log(tx, taskId, caller, "deleted", task, null);
   });
-  tx();
 }
 
 function assertCanUpdate(

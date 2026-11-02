@@ -1,17 +1,18 @@
 import { Hono } from "hono";
 import * as reviewService from "../../core/review-service";
+import type { HttpEnv } from "../types";
 
-const app = new Hono();
+const app = new Hono<HttpEnv>();
 
-app.get("/", (c) => {
+app.get("/", async (c) => {
   const { agent_id } = c.req.query();
-  const tasks = reviewService.listPendingReviews(agent_id);
+  const tasks = await reviewService.listPendingReviews(c.get("repo"), agent_id);
   return c.json(tasks);
 });
 
-app.get("/:taskId", (c) => {
+app.get("/:taskId", async (c) => {
   try {
-    const review = reviewService.getReview(c.req.param("taskId"));
+    const review = await reviewService.getReview(c.get("repo"), c.req.param("taskId"));
     return c.json(review);
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
@@ -21,7 +22,8 @@ app.get("/:taskId", (c) => {
 app.post("/", async (c) => {
   try {
     const body = await c.req.json();
-    const review = reviewService.submitReview(
+    const review = await reviewService.submitReview(
+      c.get("repo"),
       body.task_id,
       body.approved,
       body.comment || "",
@@ -34,9 +36,10 @@ app.post("/", async (c) => {
   }
 });
 
-app.get("/feedback", (c) => {
+app.get("/feedback", async (c) => {
   const { agent_id, limit } = c.req.query();
-  const reviews = reviewService.feedbackHistory(
+  const reviews = await reviewService.feedbackHistory(
+    c.get("repo"),
     agent_id,
     limit ? parseInt(limit) : undefined
   );

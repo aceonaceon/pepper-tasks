@@ -11,11 +11,19 @@
   ],
   "scripts": {
     "postinstall": "cd web && npm install && cd .. && npm run build",
-    "build": "rm -rf dist && tsup && cd web && npm run build && cd .. && cp -r web/dist dist/web",
+    "build": "rm -rf dist web/dist && tsup && cd web && npm run build && cd .. && mkdir -p dist/public && cp -R web/dist/. dist/public/",
+    "build:worker": "tsup --config tsup.config.ts --env.NODE_ENV production && rm -rf web/dist && cd web && npm run build && cd .. && rm -rf dist/public && mkdir -p dist/public && cp -R web/dist/. dist/public/",
     "build:server": "tsup",
+    "test": "npx --yes vitest@4.1.9 run",
     "start": "node dist/cli.js start",
     "dev": "tsup --watch",
-    "dev:web": "cd web && npm run dev"
+    "dev:web": "cd web && npm run dev",
+    "db:export:d1": "scripts/export-sqlite-for-d1.sh",
+    "db:import:worker": "node scripts/import-d1-via-worker.mjs",
+    "cf:migrate": "npx --yes wrangler@4.101.0 d1 migrations apply agent-task-board --remote",
+    "cf:import": "npx --yes wrangler@4.101.0 d1 execute agent-task-board --remote --file=tmp/pepper-tasks-d1-import.sql",
+    "cf:deploy": "npm run build:worker && npx --yes wrangler@4.101.0 deploy",
+    "cf:types": "npx --yes wrangler@4.101.0 types"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
@@ -25,10 +33,13 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260616.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.13.14",
     "tsup": "^8.4.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.9",
+    "wrangler": "^4.101.0"
   },
   "engines": {
     "node": ">=18"

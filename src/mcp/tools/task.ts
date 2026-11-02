@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import type { TaskRepository } from "../../db/repository";
 import * as taskService from "../../core/task-service";
 
-export function registerTaskTools(server: McpServer): void {
+export function registerTaskTools(server: McpServer, repo: TaskRepository): void {
   server.tool(
     "task_create",
     "建立新任務",
@@ -29,7 +30,8 @@ export function registerTaskTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const task = taskService.createTask(
+        const task = await taskService.createTask(
+          repo,
           {
             title: params.title,
             description: params.description,
@@ -75,7 +77,7 @@ export function registerTaskTools(server: McpServer): void {
     async (params) => {
       try {
         const { task_id, caller, ...updates } = params;
-        const task = taskService.updateTask(task_id, updates, caller);
+        const task = await taskService.updateTask(repo, task_id, updates, caller);
         return { content: [{ type: "text", text: JSON.stringify(task, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
@@ -95,7 +97,7 @@ export function registerTaskTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const tasks = taskService.listTasks(params);
+        const tasks = await taskService.listTasks(repo, params);
         return { content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
@@ -111,7 +113,7 @@ export function registerTaskTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const result = taskService.getTask(params.task_id);
+        const result = await taskService.getTask(repo, params.task_id);
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };

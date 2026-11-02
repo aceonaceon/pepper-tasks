@@ -1,18 +1,19 @@
-import { randomUUID } from "crypto";
 import { Hono } from "hono";
 import {
   WebStandardStreamableHTTPServerTransport,
 } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { createMcpServer } from "../../mcp/server";
+import { createMcpServer } from "../../mcp/create-server";
+import type { TaskRepository } from "../../db/repository";
+import type { HttpEnv } from "../types";
 
 type McpHttpSession = {
   transport: WebStandardStreamableHTTPServerTransport;
 };
 
-const sessions = new Map<string, McpHttpSession>();
-
-const app = new Hono();
+export type McpRouterOptions = {
+  stateless?: boolean;
+};
 
 function jsonRpcError(status: number, code: number, message: string): Response {
   return new Response(
@@ -35,11 +36,14 @@ function hasInitializeRequest(body: unknown): boolean {
   return isInitializeRequest(body);
 }
 
-async function createSessionTransport(): Promise<WebStandardStreamableHTTPServerTransport> {
+async function createSessionTransport(
+  repo: TaskRepository,
+  sessions: Map<string, McpHttpSession>
+): Promise<WebStandardStreamableHTTPServerTransport> {
   let transport: WebStandardStreamableHTTPServerTransport;
 
   transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
+    sessionIdGenerator: () => crypto.randomUUID(),
     onsessioninitialized: (sessionId) => {
       sessions.set(sessionId, { transport });
     },
@@ -54,44 +58,60 @@ async function createSessionTransport(): Promise<WebStandardStreamableHTTPServer
     }
   };
 
-  const server = createMcpServer();
+  const server = createMcpServer(repo);
   await server.connect(transport);
 
   return transport;
 }
 
-app.all("/", async (c) => {
-  const sessionId = c.req.raw.headers.get("mcp-session-id");
+export function createMcpRouter(options: McpRouterOptions = {}) {
+  const sessions = new Map<string, McpHttpSession>();
+  const app = new Hono<HttpEnv>();
 
-  if (sessionId) {
-    const session = sessions.get(sessionId);
-    if (!session) {
-      return jsonRpcError(404, -32001, "Session not found");
+  app.all("/", async (c) => {
+    const repo = c.get("repo");
+
+    if (options.stateless) {
+      const transport = new WebStandardStreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      const server = createMcpServer(repo);
+      await server.connect(transport);
+      return transport.handleRequest(c.req.raw);
     }
-    return session.transport.handleRequest(c.req.raw);
-  }
 
-  if (c.req.method !== "POST") {
-    return jsonRpcError(
-      400,
-      -32000,
-      "Bad Request: Mcp-Session-Id header is required"
-    );
-  }
+    const sessionId = c.req.raw.headers.get("mcp-session-id");
 
-  let parsedBody: unknown;
-  try {
-    parsedBody = await c.req.json();
-  } catch {
-    return jsonRpcError(400, -32700, "Parse error: Invalid JSON");
-  }
+    if (sessionId) {
+      const session = sessions.get(sessionId);
+      if (!session) {
+        return jsonRpcError(404, -32001, "Session not found");
+      }
+      return session.transport.handleRequest(c.req.raw);
+    }
 
-  if (!hasInitializeRequest(parsedBody)) {
-    return jsonRpcError(400, -32000, "Bad Request: initialize request is required");
-  }
+    if (c.req.method !== "POST") {
+      return jsonRpcError(
+        400,
+        -32000,
+        "Bad Request: Mcp-Session-Id header is required"
+      );
+    }
 
-  const transport = await createSessionTransport();
-  return transport.handleRequest(c.req.raw, { parsedBody });
-});
+    let parsedBody: unknown;
+    try {
+      parsedBody = await c.req.json();
+    } catch {
+      return jsonRpcError(400, -32700, "Parse error: Invalid JSON");
+    }
 
-export default app;
+    if (!hasInitializeRequest(parsedBody)) {
+      return jsonRpcError(400, -32000, "Bad Request: initialize request is required");
+    }
+
+    const transport = await createSessionTransport(repo, sessions);
+    return transport.handleRequest(c.req.raw, { parsedBody });
+  });
+
+  return app;
+}

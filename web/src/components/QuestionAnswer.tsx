@@ -35,7 +35,7 @@ export default function QuestionAnswer({ question, onAnswered }: Props) {
     }
   };
 
-  const options: string[] = question.options ? JSON.parse(question.options) : [];
+  const options = parseQuestionOptions(question.options);
 
   const btnBase =
     "px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer";
@@ -151,6 +151,26 @@ export default function QuestionAnswer({ question, onAnswered }: Props) {
       />
     </div>
   );
+}
+
+function parseQuestionOptions(raw: string | null): string[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((opt): opt is string => typeof opt === "string")
+      : [];
+  } catch {
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
+
+    return trimmed
+      .slice(1, -1)
+      .split(",")
+      .map((opt) => opt.trim())
+      .filter(Boolean);
+  }
 }
 
 function RevisionSection({

@@ -1,9 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import type { TaskRepository } from "../../db/repository";
 import * as dashboardService from "../../core/dashboard-service";
 import * as audit from "../../core/audit-service";
 
-export function registerSystemTools(server: McpServer): void {
+export function registerSystemTools(server: McpServer, repo: TaskRepository): void {
   server.tool(
     "dashboard",
     "全貌概覽 + 行動清單。回傳 action_items 已按優先級排序（1=已回覆問題 2=被退回任務 3=孤兒任務 4=進行中 5=待處理），Agent 每次 session 開始呼叫一次，從頭到尾依序處理 action_items 即可。",
@@ -12,7 +13,7 @@ export function registerSystemTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const data = dashboardService.getDashboard(params.agent_id);
+        const data = await dashboardService.getDashboard(repo, params.agent_id);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
@@ -28,7 +29,7 @@ export function registerSystemTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const data = dashboardService.getDashboardLite(params.agent_id);
+        const data = await dashboardService.getDashboardLite(repo, params.agent_id);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
@@ -44,7 +45,7 @@ export function registerSystemTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const logs = audit.getLog(params.task_id);
+        const logs = await audit.getLog(repo, params.task_id);
         return { content: [{ type: "text", text: JSON.stringify(logs, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };

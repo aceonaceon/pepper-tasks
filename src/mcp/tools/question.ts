@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import type { TaskRepository } from "../../db/repository";
 import * as questionService from "../../core/question-service";
 
-export function registerQuestionTools(server: McpServer): void {
+export function registerQuestionTools(server: McpServer, repo: TaskRepository): void {
   server.tool(
     "question_create",
     "建立結構化問題，等待老闆回答。必須先建立任務再提問，這樣老闆回答後系統才能自動解除任務的 blocked 狀態。",
@@ -19,7 +20,8 @@ export function registerQuestionTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const question = questionService.createQuestion(
+        const question = await questionService.createQuestion(
+          repo,
           {
             task_id: params.task_id,
             question_type: params.question_type,
@@ -47,7 +49,7 @@ export function registerQuestionTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const questions = questionService.listQuestions(params);
+        const questions = await questionService.listQuestions(repo, params);
         return { content: [{ type: "text", text: JSON.stringify(questions, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
@@ -63,7 +65,7 @@ export function registerQuestionTools(server: McpServer): void {
     },
     async (params) => {
       try {
-        const question = questionService.getAnswer(params.question_id);
+        const question = await questionService.getAnswer(repo, params.question_id);
         return { content: [{ type: "text", text: JSON.stringify(question, null, 2) }] };
       } catch (err: any) {
         return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
